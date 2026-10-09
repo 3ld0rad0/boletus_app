@@ -1,0 +1,27 @@
+[project]
+name = "boletus-backend"
+version = "0.1.0"
+description = "API di Boletus: account utente e punti salvati"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlmodel>=0.0.22",
+  "pyjwt>=2.9",
+  "pwdlib[argon2]>=0.2",
+  "pydantic-settings>=2.5",
+  "email-validator>=2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx2>=2.13"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.routers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

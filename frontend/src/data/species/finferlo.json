@@ -1,0 +1,15 @@
+{
+  "id": "finferlo",
+  "name": "Finferlo",
+  "latinName": "Cantharellus cibarius",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0.2, 0.7, 1, 1, 1, 0.8, 0.3, 0],
+    "elevation": { "min": 0, "optMin": 200, "optMax": 1400, "max": 1900 }
+  },
+  "weighted": {
+    "temperature": { "min": 8, "optMin": 15, "optMax": 24, "max": 30, "weight": 0.3 },
+    "rain": { "min": 10, "optMin": 30, "optMax": 100, "max": 220, "weight": 0.45 },
+    "humidity": { "min": 50, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.25 }
+  }
+}

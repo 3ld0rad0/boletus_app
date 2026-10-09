@@ -1,0 +1,15 @@
+{
+  "id": "porcino",
+  "name": "Porcino",
+  "latinName": "Boletus edulis",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0.2, 0.6, 0.8, 0.9, 1, 1, 0.5, 0.1],
+    "elevation": { "min": 200, "optMin": 600, "optMax": 1600, "max": 2100 }
+  },
+  "weighted": {
+    "temperature": { "min": 6, "optMin": 13, "optMax": 22, "max": 28, "weight": 0.35 },
+    "rain": { "min": 10, "optMin": 40, "optMax": 120, "max": 250, "weight": 0.45 },
+    "humidity": { "min": 50, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.2 }
+  }
+}
