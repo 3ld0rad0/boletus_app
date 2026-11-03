@@ -36,4 +36,5 @@ export const STORAGE_KEYS = {
   startPoint: 'boletus.startPoint',
   token: 'boletus.token',
   disclaimerAccepted: 'boletus.disclaimerAccepted',
+  theme: 'boletus.theme',
 } as const

@@ -2,6 +2,7 @@ import type { ScoredCell, SpeciesRules } from '../core/types'
 import { probableForest } from '../core/forestType'
 import { RAIN_WINDOW_DAYS, TEMP_WINDOW_DAYS } from '../core/weather'
 import { BAND_COLORS, BAND_LABELS } from '../config'
+import { Icon } from './Icon'
 
 interface Props {
   cell: ScoredCell
@@ -9,52 +10,61 @@ interface Props {
   onClose: () => void
 }
 
+const LIGHT_BANDS = new Set(['mediumHigh', 'high'])
+
 export function ScoreDetails({ cell, species, onClose }: Props) {
   const { result } = cell
   const forest = probableForest(cell)
   return (
-    <section className="score-details" aria-label="Dettagli punteggio">
-      <header>
-        <h2>
-          {species.name}: <span style={{ color: BAND_COLORS[result.band] }}>{result.score}/100</span>
-        </h2>
-        <button type="button" className="icon" onClick={onClose} aria-label="Chiudi">
-          ✕
+    <div className="detail-sheet" role="dialog" aria-label="Dettaglio probabilità">
+      <div className="sheet-handle" />
+      <div className="detail-head">
+        <div>
+          <p className="eyebrow">Dettaglio della cella</p>
+          <h2>
+            {species.name}: <span style={{ color: BAND_COLORS[result.band] }}>{result.score}/100</span>
+          </h2>
+          <span
+            className="probability-badge"
+            style={{ background: BAND_COLORS[result.band], color: LIGHT_BANDS.has(result.band) ? '#1d2a24' : '#fff' }}
+          >
+            Probabilità {BAND_LABELS[result.band].toLowerCase()}
+          </span>
+        </div>
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi dettaglio">
+          <Icon name="close" />
         </button>
-      </header>
-      <p className="muted">
-        Probabilità {BAND_LABELS[result.band].toLowerCase()}. Stagione, quota e vicinanza ai centri abitati abbassano il
-        punteggio in modo graduale, senza azzerarlo.
+      </div>
+      <p className="detail-note">
+        Stagione, quota e vicinanza ai centri abitati abbassano il punteggio in modo graduale, senza azzerarlo.
       </p>
-      <ul className="factors">
+      <div className="factors">
         {result.factors.map((f) => (
-          <li key={f.id}>
+          <div className="factor" key={f.id}>
             <div className="factor-head">
-              <span>
-                {f.label}
-                {f.blocking && <small className="tag">moltiplicatore</small>}
-              </span>
-              <span className={`verdict verdict-${f.verdict}`}>{f.verdict}</span>
+              <strong>{f.label}</strong>
+              {f.blocking && <span className="mini-tag">moltiplicatore</span>}
+              <span className={`verdict ${f.verdict}`}>{f.verdict}</span>
             </div>
-            <div className="bar">
-              <div style={{ width: `${Math.round(f.value * 100)}%` }} />
+            <div className="progress" aria-label={`${f.label}: ${Math.round(f.value * 100)}%`}>
+              <span style={{ width: `${Math.round(f.value * 100)}%` }} />
             </div>
-            <small>{f.detail}</small>
-          </li>
+            <p>{f.detail}</p>
+          </div>
         ))}
-      </ul>
+      </div>
       {forest && (
-        <p>
-          <strong>Bosco probabile:</strong> {forest}{' '}
-          <small className="muted">(stima da CORINE e quota, valida per la Calabria)</small>
-        </p>
+        <div className="forest-estimate">
+          <strong>Bosco probabile:</strong> {forest}
+          <span>Stima da CORINE e quota, valida per la Calabria; può differire dalla vegetazione reale.</span>
+        </div>
       )}
-      <p className="muted">
+      <p className="sources">
         Meteo Open-Meteo: temperatura media degli ultimi {TEMP_WINDOW_DAYS} giorni corretta per la quota, pioggia
         totale e umidità media degli ultimi {RAIN_WINDOW_DAYS} giorni.
         {result.factors.some((f) => f.id === 'habitat') &&
           ' Vegetazione da CORINE Land Cover 2018 (100 m): boschi e prati più piccoli di circa 25 ha possono non comparire.'}
       </p>
-    </section>
+    </div>
   )
 }

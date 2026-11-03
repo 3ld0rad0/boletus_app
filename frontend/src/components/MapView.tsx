@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { LatLon, ScoredCell } from '../core/types'
@@ -13,6 +13,7 @@ import {
   TILE_URL,
   USER_ZOOM,
 } from '../config'
+import { Icon } from './Icon'
 
 interface Props {
   position: Position | null
@@ -23,13 +24,23 @@ interface Props {
   selectedCellId: string | null
   onSelectCell: (id: string | null) => void
   onCenterChange: (center: LatLon) => void
+  /** Altri pulsanti flottanti, sotto quello di centratura. */
+  children?: ReactNode
 }
 
 const GRID_STYLE: L.PathOptions = { color: '#333', weight: 0.5, opacity: 0.4, fillOpacity: 0.4 }
 const SELECTED_STYLE: L.PathOptions = { color: '#111', weight: 3, opacity: 1 }
 
-const USER_ICON = L.divIcon({ className: 'user-dot', iconSize: [18, 18] })
-const START_ICON = L.divIcon({ className: 'start-pin', iconSize: [20, 20] })
+const USER_ICON = L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [18, 18] })
+// Stessa icona "flag" di Icon.tsx; punta del segnaposto in basso al centro.
+const START_ICON = L.divIcon({
+  className: '',
+  html:
+    '<div class="start-pin-body"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M6 21V4" /><path d="M6 5c4-3 7 3 12 0v9c-5 3-8-3-12 0" /></svg></div>',
+  iconSize: [38, 38],
+  iconAnchor: [19, 46],
+})
 
 function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null) {
   rects.forEach((rect, id) => {
@@ -42,7 +53,16 @@ function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null
   })
 }
 
-export function MapView({ position, startPoint, focus, cells, selectedCellId, onSelectCell, onCenterChange }: Props) {
+export function MapView({
+  position,
+  startPoint,
+  focus,
+  cells,
+  selectedCellId,
+  onSelectCell,
+  onCenterChange,
+  children,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const gridRef = useRef<L.LayerGroup | null>(null)
@@ -74,7 +94,7 @@ export function MapView({ position, startPoint, focus, cells, selectedCellId, on
       maxZoom: 19,
     }).addTo(map)
     L.control.zoom({ position: 'topright' }).addTo(map)
-    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map)
+    L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map)
     gridRef.current = L.layerGroup().addTo(map)
 
     map.on('click', () => callbacks.current.onSelectCell(null))
@@ -185,16 +205,19 @@ export function MapView({ position, startPoint, focus, cells, selectedCellId, on
   return (
     <div className="map-wrapper">
       <div ref={containerRef} className="map" />
-      <button
-        type="button"
-        className="map-recenter"
-        onClick={recenter}
-        disabled={!position}
-        title="Centra sulla mia posizione"
-        aria-label="Centra sulla mia posizione"
-      >
-        ◎
-      </button>
+      <div className="float-controls">
+        <button
+          type="button"
+          className="map-fab"
+          onClick={recenter}
+          disabled={!position}
+          title="Centra sulla mia posizione"
+          aria-label="Centra sulla mia posizione"
+        >
+          <Icon name="locate" />
+        </button>
+        {children}
+      </div>
     </div>
   )
 }

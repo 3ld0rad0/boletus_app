@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { searchPlaces, type Place } from '../core/geocoding'
+import { Icon } from './Icon'
 
 const LIVE_DELAY_MS = 350
 // Sotto i 3 caratteri il geocoding fa solo corrispondenza esatta: non vale la richiesta.
@@ -9,6 +10,7 @@ interface Props {
   onSelect: (place: Place) => void
 }
 
+/** Campo di ricerca + elenco risultati; da inserire in `.top-line` dentro `.top-controls` (posizionato). */
 export function PlaceSearch({ onSelect }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Place[] | null>(null)
@@ -35,65 +37,79 @@ export function PlaceSearch({ onSelect }: Props) {
     }
   }
 
+  const reset = () => {
+    window.clearTimeout(timer.current)
+    // Invalida le risposte ancora in arrivo, che non sono più attuali.
+    requestId.current++
+    setResults(null)
+    setBusy(false)
+    setError(null)
+  }
+
   const onChange = (value: string) => {
     setQuery(value)
-    window.clearTimeout(timer.current)
     if (value.trim().length < LIVE_MIN_CHARS) {
-      // Invalida le risposte ancora in arrivo, che non sono più attuali.
-      requestId.current++
-      setResults(null)
-      setBusy(false)
-      setError(null)
+      reset()
       return
     }
+    window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => void run(value), LIVE_DELAY_MS)
   }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
+    if (query.trim().length < 2) return
     window.clearTimeout(timer.current)
     void run(query)
   }
 
   const choose = (place: Place) => {
-    window.clearTimeout(timer.current)
-    requestId.current++
-    setResults(null)
-    setBusy(false)
+    reset()
     setQuery(place.name)
     onSelect(place)
   }
 
+  const clear = () => {
+    reset()
+    setQuery('')
+  }
+
+  const hasPanel = busy || error !== null || results !== null
+
   return (
-    <div className="place-search">
-      <form onSubmit={submit} role="search">
+    <>
+      <form className="search-box" role="search" onSubmit={submit}>
+        <Icon name="search" />
         <input
           type="search"
           value={query}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Cerca una località…"
-          aria-label="Cerca una località"
+          placeholder="Cerca un luogo…"
+          aria-label="Cerca un luogo"
           autoComplete="off"
         />
-        <button type="submit" disabled={busy || query.trim().length < 2}>
-          Cerca
-        </button>
+        {query && (
+          <button type="button" onClick={clear} aria-label="Cancella ricerca">
+            <Icon name="close" size={18} />
+          </button>
+        )}
       </form>
-      {busy && <p className="muted">Cerco…</p>}
-      {error && <p className="warning">{error}</p>}
-      {!busy && results && results.length === 0 && <p className="muted">Nessun risultato.</p>}
-      {results && results.length > 0 && (
-        <ul className="place-results">
-          {results.map((p) => (
-            <li key={p.id}>
-              <button type="button" onClick={() => choose(p)}>
+      {hasPanel && (
+        <div className="search-results">
+          {busy && <p>Cerco…</p>}
+          {error && <p className="warning">{error}</p>}
+          {!busy && results && results.length === 0 && <p>Nessun risultato</p>}
+          {results?.map((p) => (
+            <button key={p.id} type="button" onClick={() => choose(p)}>
+              <Icon name="locate" />
+              <span>
                 {p.name}
-                {p.detail && <small className="muted"> {p.detail}</small>}
-              </button>
-            </li>
+                {p.detail && <small>{p.detail}</small>}
+              </span>
+            </button>
           ))}
-        </ul>
+        </div>
       )}
-    </div>
+    </>
   )
 }

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { BAND_THRESHOLDS } from '../core/scoring'
 import { BAND_COLORS, BAND_LABELS } from '../config'
+import { Icon } from './Icon'
 
 function rangeLabel(index: number): string {
   const { min } = BAND_THRESHOLDS[index]
@@ -9,14 +11,29 @@ function rangeLabel(index: number): string {
 }
 
 export function ProbabilityLegend() {
+  const [open, setOpen] = useState(false)
   return (
-    <ul className="legend" aria-label="Legenda probabilità">
-      {BAND_THRESHOLDS.map(({ band }, i) => (
-        <li key={band}>
-          <span className="swatch" style={{ background: BAND_COLORS[band] }} />
-          {BAND_LABELS[band]} <small>({rangeLabel(i)})</small>
-        </li>
-      ))}
-    </ul>
+    <div className="legend">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <span>
+          <strong>Legenda probabilità</strong>
+          <small>{BAND_THRESHOLDS.length} fasce · punteggio 0–100</small>
+        </span>
+        <Icon name="chevron" />
+      </button>
+      {open && (
+        <div className="legend-grid">
+          {BAND_THRESHOLDS.map(({ band }, i) => (
+            <div key={band}>
+              <i style={{ background: BAND_COLORS[band] }} />
+              <span>
+                {BAND_LABELS[band]}
+                <small>{rangeLabel(i)}</small>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
