@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string
+  readonly VITE_THUNDERFOREST_API_KEY?: string
   readonly VITE_TILE_URL?: string
   readonly VITE_TILE_ATTRIBUTION?: string
 }

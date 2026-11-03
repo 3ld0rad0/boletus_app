@@ -134,6 +134,11 @@ input {
   inset: 0;
 }
 
+/* Isola gli z-index dei pannelli Leaflet (400+) da quelli dell'interfaccia. */
+.map {
+  z-index: 0;
+}
+
 .map-recenter {
   position: absolute;
   right: 10px;
@@ -211,6 +216,15 @@ input {
   background: #1e88e5;
   border: 3px solid #fff;
   box-shadow: 0 0 0 2px rgb(30 136 229 / 40%);
+}
+
+.start-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #8e24aa;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px rgb(142 36 170 / 40%);
 }
 
 /* Punto di partenza */

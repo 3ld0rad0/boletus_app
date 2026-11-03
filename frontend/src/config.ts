@@ -8,13 +8,22 @@ export const DEFAULT_CENTER: LatLon = { lat: 42.5, lon: 12.5 }
 export const DEFAULT_ZOOM = 5.5
 export const USER_ZOOM = 14
 
-const DEFAULT_TILE_URL = 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-const DEFAULT_TILE_ATTRIBUTION =
+const THUNDERFOREST_KEY = import.meta.env.VITE_THUNDERFOREST_API_KEY
+
+const THUNDERFOREST_TILE_URL = `https://{s}.tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${THUNDERFOREST_KEY}`
+const THUNDERFOREST_ATTRIBUTION =
+  'Mappa: © <a href="https://www.thunderforest.com">Thunderforest</a> | Dati: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+// Senza chiave Thunderforest si ripiega su OpenTopoMap.
+const FALLBACK_TILE_URL = 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
+const FALLBACK_ATTRIBUTION =
   'Dati: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, SRTM | Stile: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
 
-/** Una o più URL di tile raster separate da virgola. */
-export const TILE_URLS = (import.meta.env.VITE_TILE_URL || DEFAULT_TILE_URL).split(',').map((s) => s.trim())
-export const TILE_ATTRIBUTION = import.meta.env.VITE_TILE_ATTRIBUTION || DEFAULT_TILE_ATTRIBUTION
+/** URL di tile raster; `VITE_TILE_URL` ha la precedenza su Thunderforest. */
+export const TILE_URL =
+  import.meta.env.VITE_TILE_URL || (THUNDERFOREST_KEY ? THUNDERFOREST_TILE_URL : FALLBACK_TILE_URL)
+export const TILE_ATTRIBUTION =
+  import.meta.env.VITE_TILE_ATTRIBUTION || (THUNDERFOREST_KEY ? THUNDERFOREST_ATTRIBUTION : FALLBACK_ATTRIBUTION)
 export const TILE_MAX_ZOOM = 17
 
 export const BAND_COLORS: Record<Band, string> = {

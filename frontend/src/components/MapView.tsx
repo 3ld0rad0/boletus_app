@@ -1,15 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  GeoJSONSource,
-  Map as MapLibreMap,
-  Marker,
-  NavigationControl,
-  ScaleControl,
-  type StyleSpecification,
-} from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
-import type { FeatureCollection, Polygon } from 'geojson'
-import { circleRing } from '../core/geo'
+import { useEffect, useRef } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import type { LatLon, ScoredCell } from '../core/types'
 import type { Position } from '../services/location'
 import {
@@ -18,7 +9,7 @@ import {
   DEFAULT_ZOOM,
   TILE_ATTRIBUTION,
   TILE_MAX_ZOOM,
-  TILE_URLS,
+  TILE_URL,
   USER_ZOOM,
 } from '../config'
 
@@ -31,55 +22,35 @@ interface Props {
   onCenterChange: (center: LatLon) => void
 }
 
-const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
+const GRID_STYLE: L.PathOptions = { color: '#333', weight: 0.5, opacity: 0.4, fillOpacity: 0.4 }
+const SELECTED_STYLE: L.PathOptions = { color: '#111', weight: 3, opacity: 1 }
 
-const STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    base: {
-      type: 'raster',
-      tiles: TILE_URLS,
-      tileSize: 256,
-      maxzoom: TILE_MAX_ZOOM,
-      attribution: TILE_ATTRIBUTION,
-    },
-  },
-  layers: [{ id: 'base', type: 'raster', source: 'base' }],
-}
+const USER_ICON = L.divIcon({ className: 'user-dot', iconSize: [18, 18] })
+const START_ICON = L.divIcon({ className: 'start-pin', iconSize: [20, 20] })
 
-function cellsToGeoJson(cells: ScoredCell[]): FeatureCollection<Polygon> {
-  return {
-    type: 'FeatureCollection',
-    features: cells.map(({ cell, result }) => {
-      const { south, west, north, east } = cell.bounds
-      return {
-        type: 'Feature',
-        properties: { id: cell.id, score: result.score, band: result.band },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]],
-        },
-      }
-    }),
-  }
-}
-
-function createUserDot(): HTMLElement {
-  const el = document.createElement('div')
-  el.className = 'user-dot'
-  el.setAttribute('aria-label', 'La tua posizione')
-  return el
+function applySelection(rects: Map<string, L.Rectangle>, selectedId: string | null) {
+  rects.forEach((rect, id) => {
+    if (id === selectedId) {
+      rect.setStyle(SELECTED_STYLE)
+      rect.bringToFront()
+    } else {
+      rect.setStyle(GRID_STYLE)
+    }
+  })
 }
 
 export function MapView({ position, startPoint, cells, selectedCellId, onSelectCell, onCenterChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<MapLibreMap | null>(null)
-  const userMarkerRef = useRef<Marker | null>(null)
-  const startMarkerRef = useRef<Marker | null>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const gridRef = useRef<L.LayerGroup | null>(null)
+  const rectsRef = useRef<Map<string, L.Rectangle>>(new Map())
+  const accuracyRef = useRef<L.Circle | null>(null)
+  const userMarkerRef = useRef<L.Marker | null>(null)
+  const startMarkerRef = useRef<L.Marker | null>(null)
   const centeredOnUser = useRef(false)
+  const selectedRef = useRef<string | null>(null)
   const lastFitKey = useRef<string | null>(null)
   const callbacks = useRef({ onSelectCell, onCenterChange })
-  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     callbacks.current = { onSelectCell, onCenterChange }
@@ -87,79 +58,60 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
 
   useEffect(() => {
     if (!containerRef.current) return
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      style: STYLE,
-      center: [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat],
+    const map = L.map(containerRef.current, {
+      center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lon],
       zoom: DEFAULT_ZOOM,
-      attributionControl: { compact: true },
+      maxZoom: 19,
+      zoomControl: false,
     })
-    map.addControl(new NavigationControl({ visualizePitch: false }), 'top-right')
-    map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left')
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTRIBUTION,
+      subdomains: 'abc',
+      maxNativeZoom: TILE_MAX_ZOOM,
+      maxZoom: 19,
+    }).addTo(map)
+    L.control.zoom({ position: 'topright' }).addTo(map)
+    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map)
+    gridRef.current = L.layerGroup().addTo(map)
 
-    map.on('load', () => {
-      map.addSource('grid', { type: 'geojson', data: EMPTY })
-      map.addLayer({
-        id: 'grid-fill',
-        type: 'fill',
-        source: 'grid',
-        paint: {
-          'fill-color': ['match', ['get', 'band'], 'low', BAND_COLORS.low, 'medium', BAND_COLORS.medium, BAND_COLORS.high],
-          'fill-opacity': 0.4,
-        },
-      })
-      map.addLayer({
-        id: 'grid-outline',
-        type: 'line',
-        source: 'grid',
-        paint: { 'line-color': '#333', 'line-width': 0.5, 'line-opacity': 0.4 },
-      })
-      map.addLayer({
-        id: 'grid-selected',
-        type: 'line',
-        source: 'grid',
-        filter: ['==', ['get', 'id'], ''],
-        paint: { 'line-color': '#111', 'line-width': 3 },
-      })
-      map.addSource('accuracy', { type: 'geojson', data: EMPTY })
-      map.addLayer({
-        id: 'accuracy-fill',
-        type: 'fill',
-        source: 'accuracy',
-        paint: { 'fill-color': '#1e88e5', 'fill-opacity': 0.15 },
-      })
-      setReady(true)
-    })
-
-    map.on('click', (e) => {
-      const feature = map.getLayer('grid-fill')
-        ? map.queryRenderedFeatures(e.point, { layers: ['grid-fill'] })[0]
-        : undefined
-      callbacks.current.onSelectCell(feature ? String(feature.properties.id) : null)
-    })
-    map.on('mouseenter', 'grid-fill', () => (map.getCanvas().style.cursor = 'pointer'))
-    map.on('mouseleave', 'grid-fill', () => (map.getCanvas().style.cursor = ''))
+    map.on('click', () => callbacks.current.onSelectCell(null))
     map.on('moveend', () => {
       const c = map.getCenter()
       callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
     })
 
     mapRef.current = map
+    const rects = rectsRef.current
     return () => {
       map.remove()
       mapRef.current = null
+      gridRef.current = null
+      rects.clear()
+      accuracyRef.current = null
       userMarkerRef.current = null
       startMarkerRef.current = null
       centeredOnUser.current = false
       lastFitKey.current = null
-      setReady(false)
     }
   }, [])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !ready) return
-    map.getSource<GeoJSONSource>('grid')?.setData(cellsToGeoJson(cells))
+    const grid = gridRef.current
+    if (!map || !grid) return
+    grid.clearLayers()
+    rectsRef.current.clear()
+    for (const { cell, result } of cells) {
+      const { south, west, north, east } = cell.bounds
+      const rect = L.rectangle(
+        [[south, west], [north, east]],
+        { ...GRID_STYLE, fillColor: BAND_COLORS[result.band], bubblingMouseEvents: false },
+      )
+      rect.on('click', () => callbacks.current.onSelectCell(cell.id))
+      rect.addTo(grid)
+      rectsRef.current.set(cell.id, rect)
+    }
+    applySelection(rectsRef.current, selectedRef.current)
     const first = cells[0]?.cell
     const last = cells[cells.length - 1]?.cell
     if (!first || !last) return
@@ -169,39 +121,45 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
       lastFitKey.current = key
       map.fitBounds(
         [
-          [first.bounds.west, last.bounds.south],
-          [last.bounds.east, first.bounds.north],
+          [last.bounds.south, first.bounds.west],
+          [first.bounds.north, last.bounds.east],
         ],
-        { padding: 40, duration: 800 },
+        { padding: [40, 40], duration: 0.8 },
       )
     }
-  }, [cells, ready])
+  }, [cells])
 
   useEffect(() => {
-    if (ready) mapRef.current?.setFilter('grid-selected', ['==', ['get', 'id'], selectedCellId ?? ''])
-  }, [selectedCellId, ready])
+    selectedRef.current = selectedCellId
+    applySelection(rectsRef.current, selectedCellId)
+  }, [selectedCellId])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || !position) return
-    const lngLat: [number, number] = [position.lon, position.lat]
+    const latLng: L.LatLngTuple = [position.lat, position.lon]
     if (!userMarkerRef.current) {
-      userMarkerRef.current = new Marker({ element: createUserDot() }).setLngLat(lngLat).addTo(map)
+      userMarkerRef.current = L.marker(latLng, {
+        icon: USER_ICON,
+        interactive: false,
+        keyboard: false,
+      }).addTo(map)
+      accuracyRef.current = L.circle(latLng, {
+        radius: position.accuracyM,
+        stroke: false,
+        fillColor: '#1e88e5',
+        fillOpacity: 0.15,
+        interactive: false,
+      }).addTo(map)
     } else {
-      userMarkerRef.current.setLngLat(lngLat)
-    }
-    if (ready) {
-      map.getSource<GeoJSONSource>('accuracy')?.setData({
-        type: 'Feature',
-        properties: {},
-        geometry: { type: 'Polygon', coordinates: [circleRing(position, position.accuracyM)] },
-      })
+      userMarkerRef.current.setLatLng(latLng)
+      accuracyRef.current?.setLatLng(latLng).setRadius(position.accuracyM)
     }
     if (!centeredOnUser.current) {
       centeredOnUser.current = true
-      map.flyTo({ center: lngLat, zoom: USER_ZOOM })
+      map.flyTo(latLng, USER_ZOOM)
     }
-  }, [position, ready])
+  }, [position])
 
   useEffect(() => {
     const map = mapRef.current
@@ -211,16 +169,17 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
       startMarkerRef.current = null
       return
     }
-    const lngLat: [number, number] = [startPoint.lon, startPoint.lat]
+    const latLng: L.LatLngTuple = [startPoint.lat, startPoint.lon]
     if (!startMarkerRef.current) {
-      startMarkerRef.current = new Marker({ color: '#8e24aa' }).setLngLat(lngLat).addTo(map)
+      startMarkerRef.current = L.marker(latLng, { icon: START_ICON, interactive: false, keyboard: false }).addTo(map)
     } else {
-      startMarkerRef.current.setLngLat(lngLat)
+      startMarkerRef.current.setLatLng(latLng)
     }
-  }, [startPoint, ready])
+  }, [startPoint])
 
   const recenter = () => {
-    if (position) mapRef.current?.flyTo({ center: [position.lon, position.lat], zoom: Math.max(mapRef.current.getZoom(), USER_ZOOM) })
+    const map = mapRef.current
+    if (position && map) map.flyTo([position.lat, position.lon], Math.max(map.getZoom(), USER_ZOOM))
   }
 
   return (

@@ -14,7 +14,7 @@ Oggi è una web app; in seguito diventerà un'app mobile con [Capacitor](https:/
 
 ```
 boletus_app/
-├── frontend/   React + TypeScript (Vite), MapLibre GL, Vitest
+├── frontend/   React + TypeScript (Vite), Leaflet, Vitest
 └── backend/    Python FastAPI, SQLModel (SQLite → PostgreSQL), JWT
 ```
 
@@ -31,7 +31,7 @@ boletus_app/
 
 **Dati esterni** (gratuiti, senza chiave):
 - [Open-Meteo](https://open-meteo.com/): meteo degli ultimi 10 giorni e quote;
-- [OpenTopoMap](https://opentopomap.org/): mappa topografica. Per un uso intensivo o in produzione serve un provider di tile dedicato, configurabile con `VITE_TILE_URL`.
+- [Thunderforest](https://www.thunderforest.com/) (Outdoors): tile della mappa, richiedono una chiave in `VITE_THUNDERFOREST_API_KEY` (da limitare per dominio). Senza chiave si ripiega su OpenTopoMap; `VITE_TILE_URL` permette di usare un altro provider.
 
 ### Come si calcola il punteggio
 
