@@ -1,4 +1,5 @@
 import { fetchWithRetry } from './http'
+import { createCache } from './memoryCache'
 import type { LatLon, WeatherSummary } from './types'
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -49,19 +50,7 @@ export function aggregateHourly(data: HourlyResponse, nowMs: number): WeatherSum
   }
 }
 
-const cache = new Map<string, { expires: number; promise: Promise<unknown> }>()
-
-// Si memorizza la promessa: richieste identiche e simultanee condividono lo stesso download.
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key)
-  if (hit && hit.expires > Date.now()) return hit.promise as Promise<T>
-  const promise = load()
-  cache.set(key, { expires: Date.now() + CACHE_TTL_MS, promise })
-  promise.catch(() => {
-    if (cache.get(key)?.promise === promise) cache.delete(key)
-  })
-  return promise
-}
+const cache = createCache(CACHE_TTL_MS)
 
 export function clearWeatherCache(): void {
   cache.clear()
@@ -77,7 +66,7 @@ async function getJson<T>(url: string, fetchFn: FetchFn): Promise<T> {
 export function fetchWeatherSummary(point: LatLon, fetchFn: FetchFn = fetch): Promise<WeatherSummary> {
   const latitude = point.lat.toFixed(2)
   const longitude = point.lon.toFixed(2)
-  return cached(`weather:${latitude},${longitude}`, async () => {
+  return cache.get(`weather:${latitude},${longitude}`, async () => {
     const params = new URLSearchParams({
       latitude,
       longitude,

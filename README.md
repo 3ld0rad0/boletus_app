@@ -32,6 +32,7 @@ boletus_app/
 **Dati esterni** (gratuiti, senza chiave):
 - [Open-Meteo](https://open-meteo.com/): meteo degli ultimi 10 giorni (una richiesta per area, con cache e retry sui 429);
 - [Terrain Tiles (Terrarium)](https://registry.opendata.aws/terrain-tiles/) su AWS: quote di ogni cella, lette nel browser dai pixel delle tile (dati SRTM, Mapzen e altri, vedi attribuzioni nel link);
+- [Overpass API](https://overpass-api.de/) (OpenStreetMap, © contributori OpenStreetMap, ODbL): boschi e prati dell'area, per il fattore vegetazione. Una richiesta per area, con cache e retry; se fallisce il punteggio viene calcolato senza vegetazione;
 - [Thunderforest](https://www.thunderforest.com/) (Outdoors): tile della mappa, richiedono una chiave in `VITE_THUNDERFOREST_API_KEY` (da limitare per dominio). Senza chiave si ripiega su OpenTopoMap; `VITE_TILE_URL` permette di usare un altro provider.
 
 ### Come si calcola il punteggio
@@ -39,12 +40,13 @@ boletus_app/
 Ogni fattore riceve un valore da 0 a 1 tramite una **curva trapezoidale** (`min`, `optMin`, `optMax`, `max`): vale 0 fuori dall'intervallo, 1 nella fascia ottimale e cresce o cala linearmente in mezzo.
 
 ```
-punteggio = 100 × moltiplicatore_stagione × moltiplicatore_quota × media_pesata(temperatura, pioggia, umidità)
+punteggio = 100 × moltiplicatore_stagione × moltiplicatore_quota × media_pesata(temperatura, pioggia, umidità, vegetazione)
 moltiplicatore = 1 − influenza × (1 − valore)
 ```
 
 - **Stagione** e **quota** agiscono da moltiplicatori *moderati*, non bloccanti: con influenza 0,7 per la stagione e 0,5 per la quota (`SEASON_INFLUENCE` e `ELEVATION_INFLUENCE` in `scoring.ts`) un valore 0 riduce il punteggio al 30% e al 50%, senza azzerarlo. Il valore di stagione di ogni mese vale a metà mese e si interpola linearmente tra mesi adiacenti in base al giorno.
 - **Temperatura** (media degli ultimi 5 giorni, corretta per la quota di ogni cella di −0,65 °C ogni 100 m), **pioggia** (totale degli ultimi 10 giorni) e **umidità** (media degli ultimi 10 giorni) si combinano con i pesi definiti nel JSON.
+- **Vegetazione** (facoltativa per specie): l'habitat della cella (bosco di conifere, latifoglie, misto, bosco generico, prato o nessuno) viene da OpenStreetMap e confrontato con le preferenze `weighted.habitat` della specie. Se il dato manca, o la specie non ha la regola, il fattore non entra nella media.
 - Fasce: molto bassa (< 17), bassa (17–32), medio-bassa (33–49), medio-alta (50–65), alta (66–82), molto alta (≥ 83).
 - Il meteo viene letto in un solo punto (il centro della griglia): pioggia e umidità sono quindi uguali in tutte le celle, mentre quota e temperatura variano da cella a cella.
 

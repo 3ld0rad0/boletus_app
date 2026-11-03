@@ -1,10 +1,14 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
 import { scoreGrid } from '../core/scoring'
-import type { GridCell, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
+import type { GridCell, Habitat, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
+import { habitatAt, habitatBbox } from '../core/vegetation'
 import { fetchWeatherSummary } from '../core/weather'
+import { fetchHabitatAreas } from '../services/overpass'
 import { fetchElevations } from '../services/terrarium'
 import { GRID_RADIUS_M, GRID_RINGS } from '../config'
+
+export type HabitatStatus = 'loading' | 'ready' | 'failed'
 
 interface GridData {
   cells: GridCell[]
@@ -12,11 +16,14 @@ interface GridData {
   weather: WeatherSummary
   month: number
   day: number
+  habitats: Habitat[] | null
+  habitatStatus: HabitatStatus
 }
 
 /**
  * Scarica meteo e quote una volta per area; il punteggio viene ricalcolato
- * localmente (senza nuove richieste) quando cambia la specie.
+ * localmente (senza nuove richieste) quando cambia la specie. La vegetazione
+ * arriva dopo e aggiorna il punteggio senza bloccare la prima visualizzazione.
  */
 export function useProbabilityGrid(species: SpeciesRules) {
   const [data, setData] = useState<GridData | null>(null)
@@ -30,14 +37,35 @@ export function useProbabilityGrid(species: SpeciesRules) {
     setError(null)
     try {
       const cells = generateGrid(center, GRID_RINGS, GRID_RADIUS_M)
+      const habitatAreas = fetchHabitatAreas(habitatBbox(cells)).then(
+        (areas) => areas,
+        () => null,
+      )
       const [weather, elevations] = await Promise.all([
         fetchWeatherSummary(center),
         fetchElevations(cells.map((c) => c.center)),
       ])
-      if (id === requestId.current) {
-        const now = new Date()
-        setData({ cells, elevations, weather, month: now.getMonth() + 1, day: now.getDate() })
-      }
+      if (id !== requestId.current) return
+      const now = new Date()
+      setData({
+        cells,
+        elevations,
+        weather,
+        month: now.getMonth() + 1,
+        day: now.getDate(),
+        habitats: null,
+        habitatStatus: 'loading',
+      })
+      setLoading(false)
+      const areas = await habitatAreas
+      if (id !== requestId.current) return
+      setData((d) =>
+        d && {
+          ...d,
+          habitats: areas ? cells.map((c) => habitatAt(c.center, areas)) : null,
+          habitatStatus: areas ? 'ready' : 'failed',
+        },
+      )
     } catch (e) {
       if (id === requestId.current) {
         setError(`Impossibile ottenere i dati meteo: ${e instanceof Error ? e.message : 'errore sconosciuto'}`)
@@ -55,9 +83,20 @@ export function useProbabilityGrid(species: SpeciesRules) {
   }, [])
 
   const scored = useMemo(
-    () => (data ? scoreGrid(data.cells, data.elevations, data.weather, species, data.month, data.day) : []),
+    () =>
+      data
+        ? scoreGrid(data.cells, data.elevations, data.weather, species, data.month, data.day, data.habitats ?? undefined)
+        : [],
     [data, species],
   )
 
-  return { scored, weather: data?.weather ?? null, loading, error, compute, clear }
+  return {
+    scored,
+    weather: data?.weather ?? null,
+    habitatStatus: data?.habitatStatus ?? null,
+    loading,
+    error,
+    compute,
+    clear,
+  }
 }

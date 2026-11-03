@@ -7,6 +7,9 @@ export const GRID_RADIUS_M = 2500
 /** Tile di quota tenute nella cache del browser tra una sessione e l'altra (circa 100 KB ciascuna). */
 export const TERRARIUM_CACHE_MAX_TILES = 200
 
+/** Risposte Overpass (boschi e prati) tenute nella cache del browser; ognuna può pesare centinaia di KB. */
+export const OVERPASS_CACHE_MAX_AREAS = 10
+
 export const DEFAULT_CENTER: LatLon = { lat: 42.5, lon: 12.5 }
 export const DEFAULT_ZOOM = 5.5
 export const USER_ZOOM = 14

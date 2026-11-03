@@ -44,6 +44,8 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
       <p className="muted">
         Meteo Open-Meteo: temperatura media degli ultimi {TEMP_WINDOW_DAYS} giorni corretta per la quota, pioggia
         totale e umidità media degli ultimi {RAIN_WINDOW_DAYS} giorni.
+        {result.factors.some((f) => f.id === 'habitat') &&
+          ' Vegetazione da OpenStreetMap: i dati possono essere incompleti, dove bosco e prati non sono mappati la cella risulta senza vegetazione.'}
       </p>
     </section>
   )

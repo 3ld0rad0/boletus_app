@@ -87,6 +87,10 @@ export default function App() {
         </div>
         {grid.loading && <p className="muted">Scarico meteo e quote…</p>}
         {grid.error && <p className="warning">{grid.error}</p>}
+        {grid.habitatStatus === 'loading' && <p className="muted">Carico la vegetazione…</p>}
+        {grid.habitatStatus === 'failed' && (
+          <p className="muted">Vegetazione non disponibile: il punteggio non la include.</p>
+        )}
         {grid.scored.length > 0 && (
           <>
             <ProbabilityLegend />

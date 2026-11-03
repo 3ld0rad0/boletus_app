@@ -15,6 +15,15 @@ export interface WeightedTrapezoid extends Trapezoid {
   weight: number
 }
 
+/** Tipo di vegetazione/uso del suolo di una cella (da OpenStreetMap). */
+export type Habitat = 'conifer' | 'broadleaf' | 'mixed' | 'forest' | 'grassland' | 'none'
+
+/** Preferenza 0..1 della specie per ciascun habitat. */
+export interface HabitatRule {
+  weight: number
+  preferences: Record<Habitat, number>
+}
+
 export interface SpeciesRules {
   id: string
   name: string
@@ -29,6 +38,8 @@ export interface SpeciesRules {
     temperature: WeightedTrapezoid
     rain: WeightedTrapezoid
     humidity: WeightedTrapezoid
+    /** Facoltativo: senza regola o senza dato di vegetazione il fattore non entra nel calcolo. */
+    habitat?: HabitatRule
   }
 }
 
@@ -41,9 +52,11 @@ export interface ScoreInputs {
   tempMeanC: number
   rainSumMm: number
   humidityMeanPct: number
+  /** Assente se il dato di vegetazione non è disponibile. */
+  habitat?: Habitat
 }
 
-export type FactorId = 'season' | 'elevation' | 'temperature' | 'rain' | 'humidity'
+export type FactorId = 'season' | 'elevation' | 'temperature' | 'rain' | 'humidity' | 'habitat'
 export type Verdict = 'ottimale' | 'accettabile' | 'scarso'
 export type Band = 'veryLow' | 'low' | 'mediumLow' | 'mediumHigh' | 'high' | 'veryHigh'
 

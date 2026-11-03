@@ -10,6 +10,7 @@
   "weighted": {
     "temperature": { "min": 3, "optMin": 8, "optMax": 16, "max": 22, "weight": 0.4 },
     "rain": { "min": 10, "optMin": 30, "optMax": 90, "max": 200, "weight": 0.35 },
-    "humidity": { "min": 55, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.25 }
+    "humidity": { "min": 55, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.25 },
+    "habitat": { "weight": 0.25, "preferences": { "conifer": 0.5, "broadleaf": 1.0, "mixed": 0.8, "forest": 0.8, "grassland": 0.4, "none": 0.3 } }
   }
 }

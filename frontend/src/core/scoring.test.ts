@@ -83,7 +83,7 @@ describe('score', () => {
     const seasonOf = (month: number, day?: number) =>
       score(species, { ...optimal, month, day }).factors.find((f) => f.id === 'season')!.value
     expect(seasonOf(10, 15)).toBeCloseTo(1, 1)
-    // 3 novembre (mezzogiorno): 2,5/30 di mese dopo l'inizio, cio\u00e8 58% del percorso tra met\u00e0 ottobre (1) e met\u00e0 novembre (0,5)
+    // 3 novembre (mezzogiorno): 2,5/30 di mese dopo l'inizio, cioè 58% del percorso tra metà ottobre (1) e metà novembre (0,5)
     expect(seasonOf(11, 3)).toBeCloseTo(1 - 0.5 * (0.5 + 2.5 / 30), 5)
     expect(seasonOf(11)).toBe(0.5)
   })
@@ -106,6 +106,43 @@ describe('score', () => {
   })
 })
 
+describe('fattore vegetazione', () => {
+  const prefs = { conifer: 1, broadleaf: 0.2, mixed: 0.6, forest: 0.5, grassland: 0, none: 0.1 }
+  const withHabitat: SpeciesRules = {
+    ...species,
+    weighted: { ...species.weighted, habitat: { weight: 4, preferences: prefs } },
+  }
+
+  it('senza dato di vegetazione il fattore non entra nel calcolo', () => {
+    const r = score(withHabitat, optimal)
+    expect(r.factors.find((f) => f.id === 'habitat')).toBeUndefined()
+    expect(r.score).toBe(100)
+  })
+  it('senza regola nella specie il dato è ignorato', () => {
+    expect(score(species, { ...optimal, habitat: 'grassland' }).factors.some((f) => f.id === 'habitat')).toBe(false)
+  })
+  it('l\'habitat ideale non cambia il punteggio, uno sfavorevole lo abbassa', () => {
+    expect(score(withHabitat, { ...optimal, habitat: 'conifer' }).score).toBe(100)
+    // pesi: temperatura 1 + pioggia 2 + umidità 1 + habitat 4; habitat 0,2 → (4 + 0,8) / 8 = 0,6
+    expect(score(withHabitat, { ...optimal, habitat: 'broadleaf' }).score).toBe(60)
+  })
+  it('descrive habitat e preferenze', () => {
+    const f = score(withHabitat, { ...optimal, habitat: 'none' }).factors.find((x) => x.id === 'habitat')!
+    expect(f.verdict).toBe('scarso')
+    expect(f.detail).toContain('nessun bosco')
+    expect(f.detail).toContain('conifere')
+  })
+  it('scoreGrid passa l\'habitat di ogni cella', () => {
+    const cells: GridCell[] = [
+      { id: 'a', center: { lat: 0, lon: 0 }, polygon: [] },
+      { id: 'b', center: { lat: 0, lon: 0 }, polygon: [] },
+    ]
+    const weather = { referenceElevationM: 1000, tempMeanC: 15, rainSumMm: 70, humidityMeanPct: 85 }
+    const [a, b] = scoreGrid(cells, [1000, 1000], weather, withHabitat, 9, undefined, ['conifer', 'grassland'])
+    expect(a.result.score).toBeGreaterThan(b.result.score)
+  })
+})
+
 describe('scoreGrid', () => {
   it('corregge la temperatura in base alla quota della cella', () => {
     const cells: GridCell[] = [
@@ -124,6 +161,15 @@ describe('validateSpecies', () => {
   it('accetta le specie incluse', () => {
     expect(validateSpecies(porcinoJson).id).toBe('porcino')
     expect(validateSpecies(finferloJson).id).toBe('finferlo')
+  })
+  it('valida le preferenze di habitat', () => {
+    const prefs = { conifer: 1, broadleaf: 0.2, mixed: 0.6, forest: 0.5, grassland: 0, none: 0.1 }
+    const ok = { ...species, weighted: { ...species.weighted, habitat: { weight: 1, preferences: prefs } } }
+    expect(validateSpecies(ok).id).toBe('test')
+    const bad = { ...ok, weighted: { ...ok.weighted, habitat: { weight: 1, preferences: { ...prefs, none: 2 } } } }
+    expect(() => validateSpecies(bad)).toThrow(/habitat/)
+    const missing = { ...ok, weighted: { ...ok.weighted, habitat: { weight: 1 } } }
+    expect(() => validateSpecies(missing)).toThrow(/preferences/)
   })
   it('rifiuta dati non validi', () => {
     expect(() => validateSpecies(null)).toThrow()

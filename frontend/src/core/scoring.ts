@@ -3,6 +3,7 @@ import type {
   FactorId,
   FactorResult,
   GridCell,
+  Habitat,
   ScoredCell,
   ScoreInputs,
   ScoreResult,
@@ -32,6 +33,17 @@ export const ELEVATION_INFLUENCE = 0.5
 const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 
 const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+export const HABITATS: readonly Habitat[] = ['conifer', 'broadleaf', 'mixed', 'forest', 'grassland', 'none']
+
+export const HABITAT_LABELS: Record<Habitat, string> = {
+  conifer: 'bosco di conifere',
+  broadleaf: 'bosco di latifoglie',
+  mixed: 'bosco misto',
+  forest: 'bosco',
+  grassland: 'prato o pascolo',
+  none: 'nessun bosco o prato mappato',
+}
 
 /** Valore di stagione: i valori mensili valgono a metà mese e si interpolano linearmente tra mesi adiacenti. */
 export function seasonValueAt(season: number[], month: number, day?: number): number {
@@ -103,6 +115,19 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
     trapezoidFactor('rain', 'Pioggia recente', 'mm', inputs.rainSumMm, weighted.rain, false),
     trapezoidFactor('humidity', 'Umidità media', '%', inputs.humidityMeanPct, weighted.humidity, false),
   ]
+  if (weighted.habitat && inputs.habitat) {
+    const { preferences } = weighted.habitat
+    const value = preferences[inputs.habitat]
+    const ideal = HABITATS.filter((h) => preferences[h] >= 0.999).map((h) => HABITAT_LABELS[h])
+    factors.push({
+      id: 'habitat',
+      label: 'Vegetazione',
+      value,
+      verdict: verdictFor(value),
+      blocking: false,
+      detail: `${HABITAT_LABELS[inputs.habitat]} (ideale: ${ideal.join(', ') || '—'})`,
+    })
+  }
 
   const influence: Partial<Record<FactorId, number>> = { season: SEASON_INFLUENCE, elevation: ELEVATION_INFLUENCE }
   const blockingProduct = factors
@@ -113,6 +138,7 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
     temperature: weighted.temperature.weight,
     rain: weighted.rain.weight,
     humidity: weighted.humidity.weight,
+    habitat: weighted.habitat?.weight,
   }
   const weightedFactors = factors.filter((f) => !f.blocking)
   const totalWeight = weightedFactors.reduce((acc, f) => acc + (weights[f.id] ?? 0), 0)
@@ -133,6 +159,7 @@ export function scoreGrid(
   species: SpeciesRules,
   month: number,
   day?: number,
+  habitats?: Habitat[],
 ): ScoredCell[] {
   return cells.map((cell, i) => {
     const elevationM = elevationsM[i] ?? weather.referenceElevationM
@@ -144,6 +171,7 @@ export function scoreGrid(
       // Approssimazione: pioggia e umidità uguali in tutta la griglia (un solo punto meteo).
       rainSumMm: weather.rainSumMm,
       humidityMeanPct: weather.humidityMeanPct,
+      habitat: habitats?.[i],
     }
     return { cell, inputs, result: score(species, inputs) }
   })
@@ -163,6 +191,19 @@ function checkTrapezoid(t: unknown, path: string, withWeight: boolean): void {
   }
   if (withWeight && !(isNum(o.weight) && o.weight >= 0)) {
     throw new Error(`${path}.weight: deve essere un numero >= 0`)
+  }
+}
+
+/** Valida le preferenze di habitat: peso >= 0 e un valore 0..1 per ogni habitat. */
+function checkHabitat(h: unknown, path: string): void {
+  if (!h || typeof h !== 'object') throw new Error(`${path}: oggetto mancante`)
+  const o = h as Record<string, unknown>
+  if (!(isNum(o.weight) && o.weight >= 0)) throw new Error(`${path}.weight: deve essere un numero >= 0`)
+  const prefs = o.preferences as Record<string, unknown> | undefined
+  if (!prefs || typeof prefs !== 'object') throw new Error(`${path}.preferences: oggetto mancante`)
+  for (const k of HABITATS) {
+    const v = prefs[k]
+    if (!(isNum(v) && v >= 0 && v <= 1)) throw new Error(`${path}.preferences.${k}: deve essere un numero tra 0 e 1`)
   }
 }
 
@@ -186,5 +227,6 @@ export function validateSpecies(raw: unknown): SpeciesRules {
   for (const k of ['temperature', 'rain', 'humidity']) {
     checkTrapezoid(weighted[k], `${id}.weighted.${k}`, true)
   }
+  if (weighted.habitat !== undefined) checkHabitat(weighted.habitat, `${id}.weighted.habitat`)
   return raw as SpeciesRules
 }
