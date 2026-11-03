@@ -11,6 +11,7 @@ interface GridData {
   elevations: number[]
   weather: WeatherSummary
   month: number
+  day: number
 }
 
 /**
@@ -33,7 +34,10 @@ export function useProbabilityGrid(species: SpeciesRules) {
         fetchWeatherSummary(center),
         fetchElevations(cells.map((c) => c.center)),
       ])
-      if (id === requestId.current) setData({ cells, elevations, weather, month: new Date().getMonth() + 1 })
+      if (id === requestId.current) {
+        const now = new Date()
+        setData({ cells, elevations, weather, month: now.getMonth() + 1, day: now.getDate() })
+      }
     } catch (e) {
       if (id === requestId.current) {
         setError(`Impossibile ottenere i dati meteo: ${e instanceof Error ? e.message : 'errore sconosciuto'}`)
@@ -51,7 +55,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
   }, [])
 
   const scored = useMemo(
-    () => (data ? scoreGrid(data.cells, data.elevations, data.weather, species, data.month) : []),
+    () => (data ? scoreGrid(data.cells, data.elevations, data.weather, species, data.month, data.day) : []),
     [data, species],
   )
 

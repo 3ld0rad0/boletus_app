@@ -25,7 +25,25 @@ export const BAND_THRESHOLDS: readonly { band: Band; min: number }[] = [
 /** Gradiente termico verticale medio: −0,65 °C ogni 100 m di quota. */
 export const LAPSE_RATE_C_PER_M = 0.0065
 
+// Quanto stagione e quota possono abbassare il punteggio: moltiplicatore = 1 − influenza × (1 − valore).
+export const SEASON_INFLUENCE = 0.7
+export const ELEVATION_INFLUENCE = 0.5
+
 const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+/** Valore di stagione: i valori mensili valgono a metà mese e si interpolano linearmente tra mesi adiacenti. */
+export function seasonValueAt(season: number[], month: number, day?: number): number {
+  const exact = season[month - 1] ?? 0
+  if (day === undefined) return exact
+  const position = month - 1 + (day - 0.5) / DAYS_IN_MONTH[month - 1] - 0.5
+  const lower = Math.floor(position)
+  const t = position - lower
+  const a = season[(lower + 12) % 12] ?? 0
+  const b = season[(lower + 13) % 12] ?? 0
+  return a + (b - a) * t
+}
 
 export function trapezoid(x: number, t: Trapezoid): number {
   if (!Number.isFinite(x) || x < t.min || x > t.max) return 0
@@ -68,7 +86,7 @@ function trapezoidFactor(
 
 export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
   const { blocking, weighted } = species
-  const seasonValue = blocking.season[inputs.month - 1] ?? 0
+  const seasonValue = seasonValueAt(blocking.season, inputs.month, inputs.day)
   const bestMonths = MONTHS.filter((_, i) => blocking.season[i] >= 0.999)
 
   const factors: FactorResult[] = [
@@ -78,7 +96,7 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
       value: seasonValue,
       verdict: verdictFor(seasonValue),
       blocking: true,
-      detail: `${MONTHS[inputs.month - 1] ?? '?'}${seasonValue === 0 ? ': fuori stagione' : ''} (migliori: ${bestMonths.join(', ') || '—'})`,
+      detail: `${MONTHS[inputs.month - 1] ?? '?'}${seasonValue < 0.05 ? ': fuori stagione' : ''} (migliori: ${bestMonths.join(', ') || '—'})`,
     },
     trapezoidFactor('elevation', 'Quota', 'm', inputs.elevationM, blocking.elevation, true),
     trapezoidFactor('temperature', 'Temperatura media', '°C', inputs.tempMeanC, weighted.temperature, false),
@@ -86,7 +104,10 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
     trapezoidFactor('humidity', 'Umidità media', '%', inputs.humidityMeanPct, weighted.humidity, false),
   ]
 
-  const blockingProduct = factors.filter((f) => f.blocking).reduce((acc, f) => acc * f.value, 1)
+  const influence: Partial<Record<FactorId, number>> = { season: SEASON_INFLUENCE, elevation: ELEVATION_INFLUENCE }
+  const blockingProduct = factors
+    .filter((f) => f.blocking)
+    .reduce((acc, f) => acc * (1 - (influence[f.id] ?? 1) * (1 - f.value)), 1)
 
   const weights: Partial<Record<FactorId, number>> = {
     temperature: weighted.temperature.weight,
@@ -111,11 +132,13 @@ export function scoreGrid(
   weather: WeatherSummary,
   species: SpeciesRules,
   month: number,
+  day?: number,
 ): ScoredCell[] {
   return cells.map((cell, i) => {
     const elevationM = elevationsM[i] ?? weather.referenceElevationM
     const inputs: ScoreInputs = {
       month,
+      day,
       elevationM,
       tempMeanC: weather.tempMeanC - LAPSE_RATE_C_PER_M * (elevationM - weather.referenceElevationM),
       // Approssimazione: pioggia e umidità uguali in tutta la griglia (un solo punto meteo).

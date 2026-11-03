@@ -21,8 +21,8 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
         </button>
       </header>
       <p className="muted">
-        Probabilità {BAND_LABELS[result.band].toLowerCase()}. Stagione e quota sono fattori bloccanti: se uno è
-        a zero, il punteggio è zero.
+        Probabilità {BAND_LABELS[result.band].toLowerCase()}. Stagione e quota abbassano il punteggio in modo
+        graduale, senza azzerarlo.
       </p>
       <ul className="factors">
         {result.factors.map((f) => (
@@ -30,7 +30,7 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
             <div className="factor-head">
               <span>
                 {f.label}
-                {f.blocking && <small className="tag">bloccante</small>}
+                {f.blocking && <small className="tag">moltiplicatore</small>}
               </span>
               <span className={`verdict verdict-${f.verdict}`}>{f.verdict}</span>
             </div>

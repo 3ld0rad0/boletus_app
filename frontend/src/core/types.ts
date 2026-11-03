@@ -35,6 +35,8 @@ export interface SpeciesRules {
 export interface ScoreInputs {
   /** 1-12 */
   month: number
+  /** Giorno del mese: se presente la stagione si interpola tra i mesi, altrimenti vale il valore del mese. */
+  day?: number
   elevationM: number
   tempMeanC: number
   rainSumMm: number

@@ -1,8 +1,8 @@
 import type { Band, LatLon } from './core/types'
 
 /** Griglia di probabilità polare: GRID_RINGS anelli (disco centrale + corone) entro il cerchio di raggio GRID_RADIUS_M. */
-export const GRID_RINGS = 6
-export const GRID_RADIUS_M = 2000
+export const GRID_RINGS = 5
+export const GRID_RADIUS_M = 2500
 
 /** Tile di quota tenute nella cache del browser tra una sessione e l'altra (circa 100 KB ciascuna). */
 export const TERRARIUM_CACHE_MAX_TILES = 200

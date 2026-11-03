@@ -39,10 +39,11 @@ boletus_app/
 Ogni fattore riceve un valore da 0 a 1 tramite una **curva trapezoidale** (`min`, `optMin`, `optMax`, `max`): vale 0 fuori dall'intervallo, 1 nella fascia ottimale e cresce o cala linearmente in mezzo.
 
 ```
-punteggio = 100 × (stagione × quota) × media_pesata(temperatura, pioggia, umidità)
+punteggio = 100 × moltiplicatore_stagione × moltiplicatore_quota × media_pesata(temperatura, pioggia, umidità)
+moltiplicatore = 1 − influenza × (1 − valore)
 ```
 
-- **Stagione** e **quota** sono *bloccanti*: se uno dei due vale 0, il punteggio è 0.
+- **Stagione** e **quota** agiscono da moltiplicatori *moderati*, non bloccanti: con influenza 0,7 per la stagione e 0,5 per la quota (`SEASON_INFLUENCE` e `ELEVATION_INFLUENCE` in `scoring.ts`) un valore 0 riduce il punteggio al 30% e al 50%, senza azzerarlo. Il valore di stagione di ogni mese vale a metà mese e si interpola linearmente tra mesi adiacenti in base al giorno.
 - **Temperatura** (media degli ultimi 5 giorni, corretta per la quota di ogni cella di −0,65 °C ogni 100 m), **pioggia** (totale degli ultimi 10 giorni) e **umidità** (media degli ultimi 10 giorni) si combinano con i pesi definiti nel JSON.
 - Fasce: molto bassa (< 17), bassa (17–32), medio-bassa (33–49), medio-alta (50–65), alta (66–82), molto alta (≥ 83).
 - Il meteo viene letto in un solo punto (il centro della griglia): pioggia e umidità sono quindi uguali in tutte le celle, mentre quota e temperatura variano da cella a cella.

@@ -69,13 +69,28 @@ describe('score', () => {
     expect(r.band).toBe('veryHigh')
     expect(r.factors.every((f) => f.verdict === 'ottimale')).toBe(true)
   })
-  it('un fattore bloccante a 0 azzera il punteggio', () => {
-    expect(score(species, { ...optimal, month: 3 }).score).toBe(0)
-    expect(score(species, { ...optimal, elevationM: 2500 }).score).toBe(0)
+  it('stagione e quota fuori intervallo abbassano il punteggio senza azzerarlo', () => {
+    // moltiplicatore stagione 1 − 0,7 = 0,3; quota 1 − 0,5 = 0,5
+    expect(score(species, { ...optimal, month: 3 }).score).toBe(30)
+    expect(score(species, { ...optimal, elevationM: 2500 }).score).toBe(50)
+    expect(score(species, { ...optimal, month: 3, elevationM: 2500 }).score).toBe(15)
   })
-  it('i bloccanti si moltiplicano', () => {
-    // stagione 0,5 × quota 0,5 (250 m) × media pesata 1
-    expect(score(species, { ...optimal, month: 11, elevationM: 250 }).score).toBe(25)
+  it('i moltiplicatori di stagione e quota si combinano', () => {
+    // stagione 0,5 → 0,65; quota 0,5 (250 m) → 0,75; media pesata 1
+    expect(score(species, { ...optimal, month: 11, elevationM: 250 }).score).toBe(49)
+  })
+  it('la stagione si interpola tra i mesi', () => {
+    const seasonOf = (month: number, day?: number) =>
+      score(species, { ...optimal, month, day }).factors.find((f) => f.id === 'season')!.value
+    expect(seasonOf(10, 15)).toBeCloseTo(1, 1)
+    // 3 novembre (mezzogiorno): 2,5/30 di mese dopo l'inizio, cio\u00e8 58% del percorso tra met\u00e0 ottobre (1) e met\u00e0 novembre (0,5)
+    expect(seasonOf(11, 3)).toBeCloseTo(1 - 0.5 * (0.5 + 2.5 / 30), 5)
+    expect(seasonOf(11)).toBe(0.5)
+  })
+  it('l\'interpolazione chiude l\'anno', () => {
+    const circular = { ...species, blocking: { ...species.blocking, season: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] } }
+    const dec = score(circular, { ...optimal, month: 12, day: 31 }).factors.find((f) => f.id === 'season')!.value
+    expect(dec).toBeGreaterThan(0.4)
   })
   it('media pesata dei fattori non bloccanti', () => {
     // pioggia 0 (peso 2), temperatura e umidità 1 (peso 1+1) → 2/4
