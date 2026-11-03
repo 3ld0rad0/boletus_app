@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AccountPanel } from './components/AccountPanel'
+import { Compass } from './components/Compass'
 import { ConfirmSheet } from './components/ConfirmSheet'
 import { Disclaimer } from './components/Disclaimer'
 import { Icon } from './components/Icon'
@@ -12,14 +13,17 @@ import { StartPointPanel } from './components/StartPointPanel'
 import type { LatLon } from './core/types'
 import { SPECIES } from './data/species'
 import { useAuth } from './hooks/useAuth'
+import { useCompass } from './hooks/useCompass'
 import { useLocation } from './hooks/useLocation'
 import { useOnline } from './hooks/useOnline'
 import { useProbabilityGrid } from './hooks/useProbabilityGrid'
 import { useSpots } from './hooks/useSpots'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useTheme } from './hooks/useTheme'
+import { useTrack } from './hooks/useTrack'
 import { DEFAULT_CENTER, GRID_RADIUS_M } from './config'
 import { storage, STORAGE_KEYS } from './services/storage'
+import { prefetchTiles } from './services/tilePrefetch'
 
 const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
 
@@ -28,7 +32,9 @@ export default function App() {
   const { position, error: locationError } = useLocation()
   const spots = useSpots(auth.user)
   const start = useStartPoint(auth.user, spots.refresh)
+  const track = useTrack(position, start.startPoint)
   const online = useOnline()
+  const compass = useCompass()
   const { theme, toggle: toggleTheme } = useTheme()
 
   const [speciesId, setSpeciesId] = useState(SPECIES[0].id)
@@ -55,7 +61,15 @@ export default function App() {
     setSelectedCellId(null)
     setHabitatBannerHidden(false)
     void grid.compute(center)
+    void prefetchTiles(center)
   }
+
+  // Mappa disponibile anche senza rete attorno al punto di partenza (per tornare indietro).
+  const startLat = start.startPoint?.lat
+  const startLon = start.startPoint?.lon
+  useEffect(() => {
+    if (startLat !== undefined && startLon !== undefined) void prefetchTiles({ lat: startLat, lon: startLon })
+  }, [startLat, startLon])
 
   const hasGrid = grid.scored.length > 0
   const quickSaveStart = () => {
@@ -71,6 +85,7 @@ export default function App() {
       <MapView
         position={position}
         startPoint={start.startPoint}
+        track={track}
         focus={focus}
         cells={grid.scored}
         selectedCellId={selectedCellId}
@@ -94,6 +109,10 @@ export default function App() {
         )}
       </MapView>
 
+      <div className="left-controls">
+        <Compass compass={compass} />
+      </div>
+
       <header className="top-controls">
         <div className="top-line">
           <PlaceSearch onSelect={(p) => setFocus({ lat: p.lat, lon: p.lon })} />
@@ -114,6 +133,10 @@ export default function App() {
 
       <div className="status-chips">
         {!online && <span className="offline-chip">Offline</span>}
+        {compass.status === 'unavailable' && (
+          <span className="radius-chip">Bussola non disponibile su questo dispositivo</span>
+        )}
+        {compass.status === 'denied' && <span className="radius-chip">Permesso per la bussola negato</span>}
         {hasGrid && (
           <span className="radius-chip">
             <Icon name="layers" size={16} /> Raggio {radiusLabel}
@@ -198,6 +221,7 @@ export default function App() {
                 <StartPointPanel
                   position={position}
                   startPoint={start.startPoint}
+                  track={track}
                   syncError={start.syncError}
                   onSave={start.save}
                   onClear={start.clear}

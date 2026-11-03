@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { bearingDeg, cardinal, formatDistance, haversineM } from '../core/geo'
+import { returnGuide } from '../core/track'
 import type { LatLon } from '../core/types'
 import type { StartPoint } from '../hooks/useStartPoint'
 import type { Position } from '../services/location'
@@ -9,12 +10,14 @@ import { Icon } from './Icon'
 interface Props {
   position: Position | null
   startPoint: StartPoint | null
+  /** Percorso registrato dalla partenza: se presente la guida di ritorno lo segue. */
+  track: LatLon[]
   syncError: string | null
   onSave: (p: LatLon) => void
   onClear: () => void
 }
 
-export function StartPointPanel({ position, startPoint, syncError, onSave, onClear }: Props) {
+export function StartPointPanel({ position, startPoint, track, syncError, onSave, onClear }: Props) {
   const [confirm, setConfirm] = useState<'replace' | 'delete' | null>(null)
 
   const save = () => {
@@ -72,7 +75,8 @@ export function StartPointPanel({ position, startPoint, syncError, onSave, onCle
   }
 
   const distance = haversineM(position, startPoint)
-  const bearing = bearingDeg(position, startPoint)
+  const guide = returnGuide(track, position, startPoint)
+  const bearing = bearingDeg(position, guide.target)
   const arrived = distance <= Math.max(position.accuracyM, 15)
   const savedAt = new Date(startPoint.savedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 
@@ -105,12 +109,13 @@ export function StartPointPanel({ position, startPoint, syncError, onSave, onCle
       </div>
       <div className="distance">
         <p className="eyebrow">Punto di partenza</p>
-        <strong>{formatDistance(distance)}</strong>
+        <strong>{formatDistance(guide.remainingM)}</strong>
         <span>
-          verso {cardinal(bearing)} ({Math.round(bearing)}°)
+          {guide.followingTrack ? 'lungo il percorso · ' : ''}verso {cardinal(bearing)} ({Math.round(bearing)}°)
         </span>
         <small>
-          Precisione ±{Math.round(position.accuracyM)} m · salvato alle {savedAt}
+          {guide.followingTrack ? `In linea d’aria ${formatDistance(distance)} · ` : ''}Precisione ±
+          {Math.round(position.accuracyM)} m · salvato alle {savedAt}
         </small>
       </div>
       {syncError && <p className="warning">{syncError}</p>}

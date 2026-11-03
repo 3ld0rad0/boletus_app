@@ -18,6 +18,8 @@ import { Icon } from './Icon'
 interface Props {
   position: Position | null
   startPoint: LatLon | null
+  /** Percorso registrato dalla partenza alla posizione attuale. */
+  track: LatLon[]
   /** Cambiando riferimento la mappa si sposta qui (es. località cercata). */
   focus: LatLon | null
   cells: ScoredCell[]
@@ -30,6 +32,9 @@ interface Props {
 
 const GRID_STYLE: L.PathOptions = { color: '#333', weight: 0.5, opacity: 0.4, fillOpacity: 0.4 }
 const SELECTED_STYLE: L.PathOptions = { color: '#111', weight: 3, opacity: 1 }
+// Visibile anche senza tessere di mappa, per tornare al punto di partenza.
+const HOME_LINE_STYLE: L.PolylineOptions = { color: '#173f32', weight: 4, opacity: 0.85, dashArray: '2 9', lineCap: 'round', interactive: false }
+const TRACK_STYLE: L.PolylineOptions = { color: '#bd5c32', weight: 4, opacity: 0.9, lineJoin: 'round', interactive: false }
 
 const USER_ICON = L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [18, 18] })
 // Stessa icona "flag" di Icon.tsx; punta del segnaposto in basso al centro.
@@ -56,6 +61,7 @@ function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null
 export function MapView({
   position,
   startPoint,
+  track,
   focus,
   cells,
   selectedCellId,
@@ -70,6 +76,8 @@ export function MapView({
   const accuracyRef = useRef<L.Circle | null>(null)
   const userMarkerRef = useRef<L.Marker | null>(null)
   const startMarkerRef = useRef<L.Marker | null>(null)
+  const homeLineRef = useRef<L.Polyline | null>(null)
+  const trackRef = useRef<L.Polyline | null>(null)
   const centeredOnUser = useRef(false)
   const selectedRef = useRef<string | null>(null)
   const lastFitKey = useRef<string | null>(null)
@@ -113,6 +121,8 @@ export function MapView({
       accuracyRef.current = null
       userMarkerRef.current = null
       startMarkerRef.current = null
+      homeLineRef.current = null
+      trackRef.current = null
       centeredOnUser.current = false
       lastFitKey.current = null
     }
@@ -192,6 +202,35 @@ export function MapView({
       startMarkerRef.current.setLatLng(latLng)
     }
   }, [startPoint])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    homeLineRef.current?.remove()
+    homeLineRef.current = null
+    if (!position || !startPoint || track.length > 1) return
+    homeLineRef.current = L.polyline(
+      [
+        [position.lat, position.lon],
+        [startPoint.lat, startPoint.lon],
+      ],
+      HOME_LINE_STYLE,
+    ).addTo(map)
+  }, [position, startPoint, track])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const latLngs = track.map((p): L.LatLngTuple => [p.lat, p.lon])
+    if (!trackRef.current) {
+      if (latLngs.length > 1) trackRef.current = L.polyline(latLngs, TRACK_STYLE).addTo(map)
+    } else if (latLngs.length > 1) {
+      trackRef.current.setLatLngs(latLngs)
+    } else {
+      trackRef.current.remove()
+      trackRef.current = null
+    }
+  }, [track])
 
   useEffect(() => {
     if (focus) mapRef.current?.flyTo([focus.lat, focus.lon], PLACE_ZOOM)

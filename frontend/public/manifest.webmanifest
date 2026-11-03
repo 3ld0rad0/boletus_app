@@ -1,0 +1,12 @@
+{
+  "name": "Boletus",
+  "short_name": "Boletus",
+  "description": "Dove cercare funghi: probabilit\u00e0 per zona, specie e stagione.",
+  "lang": "it",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf8f2",
+  "theme_color": "#173f32",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

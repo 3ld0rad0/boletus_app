@@ -33,6 +33,9 @@ export const TILE_ATTRIBUTION =
   import.meta.env.VITE_TILE_ATTRIBUTION || (THUNDERFOREST_KEY ? THUNDERFOREST_ATTRIBUTION : FALLBACK_ATTRIBUTION)
 export const TILE_MAX_ZOOM = 17
 
+/** Zoom delle tessere prescaricate attorno a punto di partenza e area calcolata. */
+export const OFFLINE_TILE_ZOOMS = [13, 14, 15, 16]
+
 export const BAND_COLORS: Record<Band, string> = {
   veryLow: '#8e1b1b',
   low: '#d64933',

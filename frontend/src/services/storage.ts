@@ -38,4 +38,5 @@ export const STORAGE_KEYS = {
   disclaimerAccepted: 'boletus.disclaimerAccepted',
   theme: 'boletus.theme',
   recentPlaces: 'boletus.recentPlaces',
+  track: 'boletus.track',
 } as const
