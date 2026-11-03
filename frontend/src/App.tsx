@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { Disclaimer } from './components/Disclaimer'
 import { LoginForm } from './components/LoginForm'
 import { MapView } from './components/MapView'
+import { PlaceSearch } from './components/PlaceSearch'
 import { ProbabilityLegend } from './components/ProbabilityLegend'
 import { ScoreDetails } from './components/ScoreDetails'
 import { SpeciesSelector } from './components/SpeciesSelector'
@@ -30,6 +31,7 @@ export default function App() {
 
   const mapCenter = useRef<LatLon>(DEFAULT_CENTER)
   const onCenterChange = useCallback((c: LatLon) => (mapCenter.current = c), [])
+  const [focus, setFocus] = useState<LatLon | null>(null)
 
   const [accountOpen, setAccountOpen] = useState(false)
   const [disclaimerOpen, setDisclaimerOpen] = useState(() => !storage.get<boolean>(STORAGE_KEYS.disclaimerAccepted))
@@ -48,6 +50,7 @@ export default function App() {
       <MapView
         position={position}
         startPoint={start.startPoint}
+        focus={focus}
         cells={grid.scored}
         selectedCellId={selectedCellId}
         onSelectCell={setSelectedCellId}
@@ -66,6 +69,7 @@ export default function App() {
             </button>
           </span>
         </div>
+        <PlaceSearch onSelect={(p) => setFocus({ lat: p.lat, lon: p.lon })} />
         <SpeciesSelector species={SPECIES} value={speciesId} onChange={setSpeciesId} />
         <div className="actions">
           <button

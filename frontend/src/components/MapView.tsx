@@ -7,6 +7,7 @@ import {
   BAND_COLORS,
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
+  PLACE_ZOOM,
   TILE_ATTRIBUTION,
   TILE_MAX_ZOOM,
   TILE_URL,
@@ -16,6 +17,8 @@ import {
 interface Props {
   position: Position | null
   startPoint: LatLon | null
+  /** Cambiando riferimento la mappa si sposta qui (es. località cercata). */
+  focus: LatLon | null
   cells: ScoredCell[]
   selectedCellId: string | null
   onSelectCell: (id: string | null) => void
@@ -39,7 +42,7 @@ function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null
   })
 }
 
-export function MapView({ position, startPoint, cells, selectedCellId, onSelectCell, onCenterChange }: Props) {
+export function MapView({ position, startPoint, focus, cells, selectedCellId, onSelectCell, onCenterChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const gridRef = useRef<L.LayerGroup | null>(null)
@@ -169,6 +172,10 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
       startMarkerRef.current.setLatLng(latLng)
     }
   }, [startPoint])
+
+  useEffect(() => {
+    if (focus) mapRef.current?.flyTo([focus.lat, focus.lon], PLACE_ZOOM)
+  }, [focus])
 
   const recenter = () => {
     const map = mapRef.current

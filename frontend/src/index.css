@@ -120,6 +120,32 @@ input {
   color: var(--muted);
 }
 
+/* Ricerca località */
+
+.place-search form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.place-results {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.place-results button {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+}
+
+.place-results button:hover {
+  background: #f1f3ef;
+}
+
 /* Layout */
 
 .app {

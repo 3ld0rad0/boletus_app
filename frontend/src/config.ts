@@ -13,6 +13,7 @@ export const OVERPASS_CACHE_MAX_AREAS = 10
 export const DEFAULT_CENTER: LatLon = { lat: 42.5, lon: 12.5 }
 export const DEFAULT_ZOOM = 5.5
 export const USER_ZOOM = 14
+export const PLACE_ZOOM = 13
 
 const THUNDERFOREST_KEY = import.meta.env.VITE_THUNDERFOREST_API_KEY
 
