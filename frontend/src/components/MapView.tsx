@@ -13,6 +13,7 @@ import {
   TILE_URL,
   USER_ZOOM,
 } from '../config'
+import { CachedTileLayer } from './CachedTileLayer'
 import { Icon } from './Icon'
 
 interface Props {
@@ -95,7 +96,7 @@ export function MapView({
       maxZoom: 19,
       zoomControl: false,
     })
-    L.tileLayer(TILE_URL, {
+    new CachedTileLayer(TILE_URL, {
       attribution: TILE_ATTRIBUTION,
       subdomains: 'abc',
       maxNativeZoom: TILE_MAX_ZOOM,

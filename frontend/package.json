@@ -16,6 +16,7 @@
   "dependencies": {
     "@capacitor/android": "^8.6.0",
     "@capacitor/core": "^8.6.0",
+    "@capgo/background-geolocation": "^8.5.2",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

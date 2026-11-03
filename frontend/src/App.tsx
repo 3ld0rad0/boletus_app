@@ -29,9 +29,10 @@ const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
 
 export default function App() {
   const auth = useAuth()
-  const { position, error: locationError } = useLocation()
   const spots = useSpots(auth.user)
   const start = useStartPoint(auth.user, spots.refresh)
+  // Con un punto di partenza salvato il percorso si registra anche a schermo spento (app nativa).
+  const { position, error: locationError } = useLocation(start.startPoint !== null)
   const track = useTrack(position, start.startPoint)
   const online = useOnline()
   const compass = useCompass()
@@ -61,7 +62,6 @@ export default function App() {
     setSelectedCellId(null)
     setHabitatBannerHidden(false)
     void grid.compute(center)
-    void prefetchTiles(center)
   }
 
   // Mappa disponibile anche senza rete attorno al punto di partenza (per tornare indietro).

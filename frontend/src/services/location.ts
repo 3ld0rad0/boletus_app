@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+import { BackgroundGeolocation } from '@capgo/background-geolocation'
 import type { LatLon } from '../core/types'
 
 export interface Position extends LatLon {
@@ -12,13 +14,17 @@ export interface LocationError {
   message: string
 }
 
-/**
- * Astrazione sul GPS. Oggi c'è l'implementazione web; per la app mobile basterà
- * aggiungerne una basata su @capacitor/geolocation e cambiare `locationProvider`.
- */
+/** Astrazione sul GPS: implementazione web (browser) e nativa (Capacitor, anche in background). */
 export interface LocationProvider {
-  /** Avvia il tracciamento; restituisce la funzione per fermarlo. */
-  watch(onPosition: (p: Position) => void, onError: (e: LocationError) => void): () => void
+  /**
+   * Avvia il tracciamento; restituisce la funzione per fermarlo. Con `background` le posizioni
+   * continuano ad arrivare a schermo spento o app in secondo piano, ma solo dove il provider lo supporta.
+   */
+  watch(
+    onPosition: (p: Position) => void,
+    onError: (e: LocationError) => void,
+    options?: { background?: boolean },
+  ): () => void
   getCurrent(): Promise<Position>
 }
 
@@ -27,7 +33,7 @@ const OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 5_000, 
 const MESSAGES: Record<LocationErrorKind, string> = {
   unsupported: 'Il dispositivo non supporta la geolocalizzazione.',
   'insecure-context': 'La geolocalizzazione richiede HTTPS (o localhost).',
-  'permission-denied': 'Permesso di posizione negato: abilitalo nelle impostazioni del browser.',
+  'permission-denied': 'Permesso di posizione negato: abilitalo nelle impostazioni.',
   unavailable: 'Posizione non disponibile: segnale GPS assente o debole.',
   timeout: 'Tempo scaduto nel rilevare la posizione, riprovo…',
 }
@@ -82,4 +88,51 @@ export const webLocationProvider: LocationProvider = {
   },
 }
 
-export const locationProvider: LocationProvider = webLocationProvider
+// Le chiamate al plugin vanno in coda: uno stop seguito da uno start non devono sovrapporsi.
+let nativeQueue: Promise<unknown> = Promise.resolve()
+const enqueueNative = (task: () => Promise<unknown>) => {
+  nativeQueue = nativeQueue.then(task, task)
+}
+
+const fromNativeError = (e: unknown): LocationError =>
+  makeError((e as { code?: string } | null)?.code === 'NOT_AUTHORIZED' ? 'permission-denied' : 'unavailable')
+
+export const nativeLocationProvider: LocationProvider = {
+  watch(onPosition, onError, { background = false } = {}) {
+    let active = true
+    enqueueNative(() =>
+      BackgroundGeolocation.start(
+        {
+          // Senza messaggio il plugin non avvia il servizio in primo piano: posizioni solo con l'app aperta.
+          ...(background && {
+            backgroundTitle: 'Boletus',
+            backgroundMessage: 'Registro il percorso per aiutarti a tornare al punto di partenza',
+          }),
+          requestPermissions: true,
+          stale: false,
+        },
+        (location, error) => {
+          if (!active) return
+          if (error) onError(fromNativeError(error))
+          else if (location) {
+            onPosition({
+              lat: location.latitude,
+              lon: location.longitude,
+              accuracyM: location.accuracy,
+              timestamp: location.time ?? Date.now(),
+            })
+          }
+        },
+      ).catch((e: unknown) => active && onError(fromNativeError(e))),
+    )
+    return () => {
+      active = false
+      enqueueNative(() => BackgroundGeolocation.stop())
+    }
+  },
+  getCurrent: () => webLocationProvider.getCurrent(),
+}
+
+export const locationProvider: LocationProvider = Capacitor.isNativePlatform()
+  ? nativeLocationProvider
+  : webLocationProvider
