@@ -47,12 +47,18 @@ describe('trapezoid', () => {
 
 describe('bandFor', () => {
   it('soglie', () => {
-    expect(bandFor(0)).toBe('low')
+    expect(bandFor(0)).toBe('veryLow')
+    expect(bandFor(16)).toBe('veryLow')
+    expect(bandFor(17)).toBe('low')
     expect(bandFor(32)).toBe('low')
-    expect(bandFor(33)).toBe('medium')
-    expect(bandFor(65)).toBe('medium')
+    expect(bandFor(33)).toBe('mediumLow')
+    expect(bandFor(49)).toBe('mediumLow')
+    expect(bandFor(50)).toBe('mediumHigh')
+    expect(bandFor(65)).toBe('mediumHigh')
     expect(bandFor(66)).toBe('high')
-    expect(bandFor(100)).toBe('high')
+    expect(bandFor(82)).toBe('high')
+    expect(bandFor(83)).toBe('veryHigh')
+    expect(bandFor(100)).toBe('veryHigh')
   })
 })
 
@@ -60,7 +66,7 @@ describe('score', () => {
   it('100 con tutti i fattori ottimali', () => {
     const r = score(species, optimal)
     expect(r.score).toBe(100)
-    expect(r.band).toBe('high')
+    expect(r.band).toBe('veryHigh')
     expect(r.factors.every((f) => f.verdict === 'ottimale')).toBe(true)
   })
   it('un fattore bloccante a 0 azzera il punteggio', () => {
@@ -75,7 +81,7 @@ describe('score', () => {
     // pioggia 0 (peso 2), temperatura e umidità 1 (peso 1+1) → 2/4
     const r = score(species, { ...optimal, rainSumMm: 0 })
     expect(r.score).toBe(50)
-    expect(r.band).toBe('medium')
+    expect(r.band).toBe('mediumHigh')
     expect(r.factors.find((f) => f.id === 'rain')?.verdict).toBe('scarso')
   })
   it('motivazioni leggibili', () => {
@@ -88,8 +94,8 @@ describe('score', () => {
 describe('scoreGrid', () => {
   it('corregge la temperatura in base alla quota della cella', () => {
     const cells: GridCell[] = [
-      { id: 'a', center: { lat: 0, lon: 0 }, bounds: { south: 0, west: 0, north: 0, east: 0 } },
-      { id: 'b', center: { lat: 0, lon: 0 }, bounds: { south: 0, west: 0, north: 0, east: 0 } },
+      { id: 'a', center: { lat: 0, lon: 0 }, polygon: [] },
+      { id: 'b', center: { lat: 0, lon: 0 }, polygon: [] },
     ]
     const weather = { referenceElevationM: 1000, tempMeanC: 15, rainSumMm: 70, humidityMeanPct: 85 }
     const [a, b] = scoreGrid(cells, [1000, 1500], weather, species, 9)

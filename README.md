@@ -30,7 +30,8 @@ boletus_app/
 **Backend**: piccolo e dedicato solo ad account e punti salvati. Il calcolo delle probabilità avviene sul client, così potrà funzionare anche offline.
 
 **Dati esterni** (gratuiti, senza chiave):
-- [Open-Meteo](https://open-meteo.com/): meteo degli ultimi 10 giorni e quote;
+- [Open-Meteo](https://open-meteo.com/): meteo degli ultimi 10 giorni (una richiesta per area, con cache e retry sui 429);
+- [Terrain Tiles (Terrarium)](https://registry.opendata.aws/terrain-tiles/) su AWS: quote di ogni cella, lette nel browser dai pixel delle tile (dati SRTM, Mapzen e altri, vedi attribuzioni nel link);
 - [Thunderforest](https://www.thunderforest.com/) (Outdoors): tile della mappa, richiedono una chiave in `VITE_THUNDERFOREST_API_KEY` (da limitare per dominio). Senza chiave si ripiega su OpenTopoMap; `VITE_TILE_URL` permette di usare un altro provider.
 
 ### Come si calcola il punteggio
@@ -43,7 +44,7 @@ punteggio = 100 × (stagione × quota) × media_pesata(temperatura, pioggia, umi
 
 - **Stagione** e **quota** sono *bloccanti*: se uno dei due vale 0, il punteggio è 0.
 - **Temperatura** (media degli ultimi 5 giorni, corretta per la quota di ogni cella di −0,65 °C ogni 100 m), **pioggia** (totale degli ultimi 10 giorni) e **umidità** (media degli ultimi 10 giorni) si combinano con i pesi definiti nel JSON.
-- Fasce: bassa < 33 ≤ media < 66 ≤ alta.
+- Fasce: molto bassa (< 17), bassa (17–32), medio-bassa (33–49), medio-alta (50–65), alta (66–82), molto alta (≥ 83).
 - Il meteo viene letto in un solo punto (il centro della griglia): pioggia e umidità sono quindi uguali in tutte le celle, mentre quota e temperatura variano da cella a cella.
 
 ### Aggiungere una specie

@@ -1,8 +1,7 @@
+import { fetchWithRetry } from './http'
 import type { LatLon, WeatherSummary } from './types'
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
-const ELEVATION_URL = 'https://api.open-meteo.com/v1/elevation'
-const ELEVATION_BATCH = 100
 const CACHE_TTL_MS = 60 * 60 * 1000
 
 export const RAIN_WINDOW_DAYS = 10
@@ -50,14 +49,18 @@ export function aggregateHourly(data: HourlyResponse, nowMs: number): WeatherSum
   }
 }
 
-const cache = new Map<string, { expires: number; value: unknown }>()
+const cache = new Map<string, { expires: number; promise: Promise<unknown> }>()
 
-async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+// Si memorizza la promessa: richieste identiche e simultanee condividono lo stesso download.
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   const hit = cache.get(key)
-  if (hit && hit.expires > Date.now()) return hit.value as T
-  const value = await load()
-  cache.set(key, { expires: Date.now() + CACHE_TTL_MS, value })
-  return value
+  if (hit && hit.expires > Date.now()) return hit.promise as Promise<T>
+  const promise = load()
+  cache.set(key, { expires: Date.now() + CACHE_TTL_MS, promise })
+  promise.catch(() => {
+    if (cache.get(key)?.promise === promise) cache.delete(key)
+  })
+  return promise
 }
 
 export function clearWeatherCache(): void {
@@ -65,7 +68,7 @@ export function clearWeatherCache(): void {
 }
 
 async function getJson<T>(url: string, fetchFn: FetchFn): Promise<T> {
-  const res = await fetchFn(url)
+  const res = await fetchWithRetry(url, fetchFn)
   if (!res.ok) throw new Error(`Open-Meteo ha risposto ${res.status}`)
   return (await res.json()) as T
 }
@@ -85,23 +88,5 @@ export function fetchWeatherSummary(point: LatLon, fetchFn: FetchFn = fetch): Pr
     })
     const data = await getJson<HourlyResponse>(`${FORECAST_URL}?${params}`, fetchFn)
     return aggregateHourly(data, Date.now())
-  })
-}
-
-/** Quote (m) per una lista di punti, richieste in batch da 100. */
-export function fetchElevations(points: LatLon[], fetchFn: FetchFn = fetch): Promise<number[]> {
-  const key = `elev:${points.map((p) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`).join(';')}`
-  return cached(key, async () => {
-    const result: number[] = []
-    for (let i = 0; i < points.length; i += ELEVATION_BATCH) {
-      const batch = points.slice(i, i + ELEVATION_BATCH)
-      const params = new URLSearchParams({
-        latitude: batch.map((p) => p.lat.toFixed(5)).join(','),
-        longitude: batch.map((p) => p.lon.toFixed(5)).join(','),
-      })
-      const data = await getJson<{ elevation: number[] }>(`${ELEVATION_URL}?${params}`, fetchFn)
-      result.push(...data.elevation)
-    }
-    return result
   })
 }

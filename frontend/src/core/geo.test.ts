@@ -44,23 +44,25 @@ describe('formatDistance', () => {
 })
 
 describe('generateGrid', () => {
-  it('crea size×size celle centrate sul punto', () => {
-    const cells = generateGrid(ROMA, 7, 3000)
-    expect(cells).toHaveLength(49)
-    const middle = cells.find((c) => c.id === '3-3')!
-    expect(middle.center.lat).toBeCloseTo(ROMA.lat, 6)
-    expect(middle.center.lon).toBeCloseTo(ROMA.lon, 6)
+  it('crea un disco centrale e corone con 8·k settori', () => {
+    const cells = generateGrid(ROMA, 4, 3000)
+    expect(cells).toHaveLength(1 + 8 + 16 + 24)
+    expect(cells[0].center).toEqual(ROMA)
+    expect(cells.filter((c) => c.id.startsWith('2-'))).toHaveLength(16)
   })
-  it('copre un quadrato di lato 2×raggio', () => {
-    const cells = generateGrid(ROMA, 5, 1000)
-    const north = Math.max(...cells.map((c) => c.bounds.north))
-    const south = Math.min(...cells.map((c) => c.bounds.south))
-    expect(haversineM({ lat: south, lon: ROMA.lon }, { lat: north, lon: ROMA.lon })).toBeCloseTo(2000, -1)
-    const first = cells[0]
-    expect(first.bounds.north).toBeCloseTo(north)
-    expect(first.bounds.west).toBeLessThan(ROMA.lon)
+  it('tutti i vertici restano entro il raggio', () => {
+    const cells = generateGrid(ROMA, 4, 3000)
+    for (const c of cells) {
+      for (const p of c.polygon) expect(haversineM(ROMA, p)).toBeLessThanOrEqual(3001)
+    }
+    const maxDist = Math.max(...cells.flatMap((c) => c.polygon.map((p) => haversineM(ROMA, p))))
+    expect(maxDist).toBeCloseTo(3000, -1)
   })
-  it('rifiuta size non valido', () => {
+  it('un solo anello è un disco', () => {
+    const cells = generateGrid(ROMA, 1, 1000)
+    expect(cells).toHaveLength(1)
+  })
+  it('rifiuta rings non valido', () => {
     expect(() => generateGrid(ROMA, 0, 1000)).toThrow()
   })
 })

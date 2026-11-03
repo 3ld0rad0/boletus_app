@@ -43,21 +43,40 @@ export function offsetMeters(origin: LatLon, eastM: number, northM: number): Lat
   }
 }
 
-/** Griglia size×size di celle quadrate che copre il quadrato di semilato `radiusM` attorno a `center`. */
-export function generateGrid(center: LatLon, size: number, radiusM: number): GridCell[] {
-  if (!Number.isInteger(size) || size < 1) throw new Error('size deve essere un intero >= 1')
-  const side = (2 * radiusM) / size
-  const cells: GridCell[] = []
-  for (let row = 0; row < size; row++) {
-    for (let col = 0; col < size; col++) {
-      const east = -radiusM + side * (col + 0.5)
-      const north = radiusM - side * (row + 0.5)
-      const sw = offsetMeters(center, east - side / 2, north - side / 2)
-      const ne = offsetMeters(center, east + side / 2, north + side / 2)
+const polarPoint = (center: LatLon, distM: number, angleRad: number): LatLon =>
+  offsetMeters(center, distM * Math.sin(angleRad), distM * Math.cos(angleRad))
+
+/** Settore anulare tra `innerM` e `outerM` e tra gli angoli (da nord, orari); con `innerM` = 0 è un disco. */
+function annularSector(center: LatLon, innerM: number, outerM: number, startRad: number, endRad: number): LatLon[] {
+  const steps = Math.max(2, Math.ceil(((endRad - startRad) / (2 * Math.PI)) * 48))
+  const angleAt = (i: number) => startRad + ((endRad - startRad) * i) / steps
+  const polygon: LatLon[] = []
+  for (let i = 0; i <= steps; i++) polygon.push(polarPoint(center, outerM, angleAt(i)))
+  if (innerM > 0) for (let i = steps; i >= 0; i--) polygon.push(polarPoint(center, innerM, angleAt(i)))
+  return polygon
+}
+
+/**
+ * Griglia polare entro il cerchio di raggio `radiusM`: un disco centrale e `rings - 1` corone,
+ * divise in 8·k settori (k = indice della corona) per mantenere le celle di area simile.
+ */
+export function generateGrid(center: LatLon, rings: number, radiusM: number): GridCell[] {
+  if (!Number.isInteger(rings) || rings < 1) throw new Error('rings deve essere un intero >= 1')
+  const width = radiusM / rings
+  const cells: GridCell[] = [
+    { id: '0-0', center, polygon: annularSector(center, 0, width, 0, 2 * Math.PI) },
+  ]
+  for (let ring = 1; ring < rings; ring++) {
+    const innerM = ring * width
+    const outerM = innerM + width
+    const sectors = 8 * ring
+    for (let s = 0; s < sectors; s++) {
+      const start = (2 * Math.PI * s) / sectors
+      const end = (2 * Math.PI * (s + 1)) / sectors
       cells.push({
-        id: `${row}-${col}`,
-        center: offsetMeters(center, east, north),
-        bounds: { south: sw.lat, west: sw.lon, north: ne.lat, east: ne.lon },
+        id: `${ring}-${s}`,
+        center: polarPoint(center, (innerM + outerM) / 2, (start + end) / 2),
+        polygon: annularSector(center, innerM, outerM, start, end),
       })
     }
   }

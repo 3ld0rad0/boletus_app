@@ -1,8 +1,11 @@
 import type { Band, LatLon } from './core/types'
 
-/** Griglia di probabilità: GRID_SIZE × GRID_SIZE celle in un quadrato di semilato GRID_RADIUS_M. */
-export const GRID_SIZE = 7
-export const GRID_RADIUS_M = 3000
+/** Griglia di probabilità polare: GRID_RINGS anelli (disco centrale + corone) entro il cerchio di raggio GRID_RADIUS_M. */
+export const GRID_RINGS = 6
+export const GRID_RADIUS_M = 2000
+
+/** Tile di quota tenute nella cache del browser tra una sessione e l'altra (circa 100 KB ciascuna). */
+export const TERRARIUM_CACHE_MAX_TILES = 200
 
 export const DEFAULT_CENTER: LatLon = { lat: 42.5, lon: 12.5 }
 export const DEFAULT_ZOOM = 5.5
@@ -27,13 +30,19 @@ export const TILE_ATTRIBUTION =
 export const TILE_MAX_ZOOM = 17
 
 export const BAND_COLORS: Record<Band, string> = {
+  veryLow: '#8e1b1b',
   low: '#d64933',
-  medium: '#f2b134',
-  high: '#2e9e4f',
+  mediumLow: '#f08a24',
+  mediumHigh: '#f2c334',
+  high: '#9ccc3c',
+  veryHigh: '#1b7a3a',
 }
 
 export const BAND_LABELS: Record<Band, string> = {
+  veryLow: 'Molto bassa',
   low: 'Bassa',
-  medium: 'Media',
+  mediumLow: 'Medio-bassa',
+  mediumHigh: 'Medio-alta',
   high: 'Alta',
+  veryHigh: 'Molto alta',
 }

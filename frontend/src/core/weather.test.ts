@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import fixture from './__fixtures__/open-meteo-hourly.json'
-import { aggregateHourly, clearWeatherCache, fetchElevations, fetchWeatherSummary, type HourlyResponse } from './weather'
+import { aggregateHourly, clearWeatherCache, fetchWeatherSummary, type HourlyResponse } from './weather'
 
 // Fixture: 12 giorni orari (dal 2026-09-25T00:00Z), temp 10→ +0,1 ogni ora fino a 288 h,
 // umidità 80, pioggia 1 mm ogni 24 ore (alle 12:00). "Ora" = 2026-10-06T00:00Z (264 h).
@@ -45,19 +45,15 @@ describe('fetch con cache', () => {
     vi.useRealTimers()
   })
 
-  it('fetchElevations divide in batch da 100', async () => {
-    const points = Array.from({ length: 150 }, (_, i) => ({ lat: 45 + i * 0.001, lon: 10 }))
-    const fetchFn = vi.fn(async (input: string | URL | Request) => {
-      const n = new URL(String(input)).searchParams.get('latitude')!.split(',').length
-      return new Response(JSON.stringify({ elevation: Array(n).fill(500) }))
-    })
-    const result = await fetchElevations(points, fetchFn)
-    expect(result).toHaveLength(150)
-    expect(fetchFn).toHaveBeenCalledTimes(2)
-  })
-
-  it('propaga gli errori HTTP', async () => {
-    const fetchFn = vi.fn(async () => new Response('err', { status: 500 }))
-    await expect(fetchElevations([{ lat: 1, lon: 1 }], fetchFn)).rejects.toThrow(/500/)
+  it('richieste simultanee allo stesso punto condividono il download', async () => {
+    vi.useFakeTimers({ now: NOW_MS })
+    const fetchFn = vi.fn(async (_input: string | URL | Request) => new Response(JSON.stringify(data)))
+    const [a, b] = await Promise.all([
+      fetchWeatherSummary({ lat: 46, lon: 11 }, fetchFn),
+      fetchWeatherSummary({ lat: 46, lon: 11 }, fetchFn),
+    ])
+    expect(a).toEqual(b)
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 })

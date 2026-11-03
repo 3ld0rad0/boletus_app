@@ -28,7 +28,7 @@ const SELECTED_STYLE: L.PathOptions = { color: '#111', weight: 3, opacity: 1 }
 const USER_ICON = L.divIcon({ className: 'user-dot', iconSize: [18, 18] })
 const START_ICON = L.divIcon({ className: 'start-pin', iconSize: [20, 20] })
 
-function applySelection(rects: Map<string, L.Rectangle>, selectedId: string | null) {
+function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null) {
   rects.forEach((rect, id) => {
     if (id === selectedId) {
       rect.setStyle(SELECTED_STYLE)
@@ -43,7 +43,7 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const gridRef = useRef<L.LayerGroup | null>(null)
-  const rectsRef = useRef<Map<string, L.Rectangle>>(new Map())
+  const rectsRef = useRef<Map<string, L.Polygon>>(new Map())
   const accuracyRef = useRef<L.Circle | null>(null)
   const userMarkerRef = useRef<L.Marker | null>(null)
   const startMarkerRef = useRef<L.Marker | null>(null)
@@ -102,30 +102,23 @@ export function MapView({ position, startPoint, cells, selectedCellId, onSelectC
     grid.clearLayers()
     rectsRef.current.clear()
     for (const { cell, result } of cells) {
-      const { south, west, north, east } = cell.bounds
-      const rect = L.rectangle(
-        [[south, west], [north, east]],
+      const polygon = L.polygon(
+        cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon]),
         { ...GRID_STYLE, fillColor: BAND_COLORS[result.band], bubblingMouseEvents: false },
       )
-      rect.on('click', () => callbacks.current.onSelectCell(cell.id))
-      rect.addTo(grid)
-      rectsRef.current.set(cell.id, rect)
+      polygon.on('click', () => callbacks.current.onSelectCell(cell.id))
+      polygon.addTo(grid)
+      rectsRef.current.set(cell.id, polygon)
     }
     applySelection(rectsRef.current, selectedRef.current)
-    const first = cells[0]?.cell
-    const last = cells[cells.length - 1]?.cell
-    if (!first || !last) return
+    if (cells.length === 0) return
     // Inquadra la griglia solo quando cambia l'area, non quando cambia la specie.
-    const key = `${first.bounds.north},${first.bounds.west}`
+    const { lat, lon } = cells[0].cell.center
+    const key = `${lat},${lon}`
     if (key !== lastFitKey.current) {
       lastFitKey.current = key
-      map.fitBounds(
-        [
-          [last.bounds.south, first.bounds.west],
-          [first.bounds.north, last.bounds.east],
-        ],
-        { padding: [40, 40], duration: 0.8 },
-      )
+      const bounds = L.latLngBounds(cells.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])))
+      map.fitBounds(bounds, { padding: [40, 40], duration: 0.8 })
     }
   }, [cells])
 

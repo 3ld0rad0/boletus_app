@@ -43,7 +43,7 @@ export interface ScoreInputs {
 
 export type FactorId = 'season' | 'elevation' | 'temperature' | 'rain' | 'humidity'
 export type Verdict = 'ottimale' | 'accettabile' | 'scarso'
-export type Band = 'low' | 'medium' | 'high'
+export type Band = 'veryLow' | 'low' | 'mediumLow' | 'mediumHigh' | 'high' | 'veryHigh'
 
 export interface FactorResult {
   id: FactorId
@@ -60,17 +60,11 @@ export interface ScoreResult {
   factors: FactorResult[]
 }
 
-export interface Bounds {
-  south: number
-  west: number
-  north: number
-  east: number
-}
-
 export interface GridCell {
   id: string
   center: LatLon
-  bounds: Bounds
+  /** Vertici del contorno della cella. */
+  polygon: LatLon[]
 }
 
 export interface WeatherSummary {

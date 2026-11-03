@@ -2,8 +2,9 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
 import { scoreGrid } from '../core/scoring'
 import type { GridCell, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
-import { fetchElevations, fetchWeatherSummary } from '../core/weather'
-import { GRID_RADIUS_M, GRID_SIZE } from '../config'
+import { fetchWeatherSummary } from '../core/weather'
+import { fetchElevations } from '../services/terrarium'
+import { GRID_RADIUS_M, GRID_RINGS } from '../config'
 
 interface GridData {
   cells: GridCell[]
@@ -27,7 +28,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
     setLoading(true)
     setError(null)
     try {
-      const cells = generateGrid(center, GRID_SIZE, GRID_RADIUS_M)
+      const cells = generateGrid(center, GRID_RINGS, GRID_RADIUS_M)
       const [weather, elevations] = await Promise.all([
         fetchWeatherSummary(center),
         fetchElevations(cells.map((c) => c.center)),

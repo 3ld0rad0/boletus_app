@@ -12,7 +12,15 @@ import type {
   WeatherSummary,
 } from './types'
 
-export const BAND_THRESHOLDS = { medium: 33, high: 66 } as const
+/** Fasce in ordine crescente; `min` è il punteggio minimo della fascia. */
+export const BAND_THRESHOLDS: readonly { band: Band; min: number }[] = [
+  { band: 'veryLow', min: 0 },
+  { band: 'low', min: 17 },
+  { band: 'mediumLow', min: 33 },
+  { band: 'mediumHigh', min: 50 },
+  { band: 'high', min: 66 },
+  { band: 'veryHigh', min: 83 },
+]
 
 /** Gradiente termico verticale medio: −0,65 °C ogni 100 m di quota. */
 export const LAPSE_RATE_C_PER_M = 0.0065
@@ -27,9 +35,7 @@ export function trapezoid(x: number, t: Trapezoid): number {
 }
 
 export function bandFor(score: number): Band {
-  if (score < BAND_THRESHOLDS.medium) return 'low'
-  if (score < BAND_THRESHOLDS.high) return 'medium'
-  return 'high'
+  return (BAND_THRESHOLDS.findLast((t) => score >= t.min) ?? BAND_THRESHOLDS[0]).band
 }
 
 function verdictFor(value: number): Verdict {
