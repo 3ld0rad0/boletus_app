@@ -23,8 +23,8 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
         </button>
       </header>
       <p className="muted">
-        Probabilità {BAND_LABELS[result.band].toLowerCase()}. Stagione e quota abbassano il punteggio in modo
-        graduale, senza azzerarlo.
+        Probabilità {BAND_LABELS[result.band].toLowerCase()}. Stagione, quota e vicinanza ai centri abitati abbassano il
+        punteggio in modo graduale, senza azzerarlo.
       </p>
       <ul className="factors">
         {result.factors.map((f) => (

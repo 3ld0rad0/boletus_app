@@ -41,16 +41,16 @@ export function toMercator(p: LatLon): { x: number; y: number } {
 }
 
 /** Rettangolo che contiene tutte le celle, allargato fino alla griglia di aggancio. */
-export function habitatBbox(cells: GridCell[], stepDeg = SNAP_DEG): BBox {
+export function habitatBbox(cells: GridCell[], stepDeg = SNAP_DEG, marginDeg = 0): BBox {
   const points = cells.flatMap((c) => c.polygon)
   const lats = points.map((p) => p.lat)
   const lons = points.map((p) => p.lon)
   const snap = (v: number, round: (x: number) => number) => Number((round(v / stepDeg) * stepDeg).toFixed(5))
   return {
-    south: snap(Math.min(...lats), Math.floor),
-    west: snap(Math.min(...lons), Math.floor),
-    north: snap(Math.max(...lats), Math.ceil),
-    east: snap(Math.max(...lons), Math.ceil),
+    south: snap(Math.min(...lats) - marginDeg, Math.floor),
+    west: snap(Math.min(...lons) - marginDeg, Math.floor),
+    north: snap(Math.max(...lats) + marginDeg, Math.ceil),
+    east: snap(Math.max(...lons) + marginDeg, Math.ceil),
   }
 }
 
@@ -75,7 +75,17 @@ const CLC_HABITATS: { rgb: [number, number, number]; habitat: Habitat }[] = [
   { rgb: [230, 230, 77], habitat: 'grassland' }, // 231 prati stabili e pascoli
   { rgb: [204, 242, 77], habitat: 'grassland' }, // 321 praterie naturali
 ]
+// 111 tessuto urbano continuo, 112 discontinuo, 121 aree industriali e commerciali.
+const CLC_URBAN_RGB: [number, number, number][] = [
+  [230, 0, 77],
+  [255, 0, 0],
+  [204, 77, 242],
+]
 const COLOR_TOLERANCE = 12
+
+export function isUrbanColor(r: number, g: number, b: number): boolean {
+  return CLC_URBAN_RGB.some(([ur, ug, ub]) => (ur - r) ** 2 + (ug - g) ** 2 + (ub - b) ** 2 <= COLOR_TOLERANCE ** 2)
+}
 
 /** Habitat della classe CORINE con il colore più vicino (entro la tolleranza), altrimenti `none`. */
 export function habitatFromColor(r: number, g: number, b: number): Habitat {
@@ -100,5 +110,28 @@ export function habitatsFromImage(points: LatLon[], image: LandcoverImage): Habi
     const py = clamp(Math.floor(((e.maxY - m.y) / (e.maxY - e.minY)) * height), 0, height - 1)
     const i = (py * width + px) * 4
     return data[i + 3] === 0 ? 'none' : habitatFromColor(data[i], data[i + 1], data[i + 2])
+  })
+}
+
+/** Distanza in metri di ogni punto dal pixel urbano più vicino (0 se dentro, `Infinity` se non ce ne sono). */
+export function urbanDistancesFromImage(points: LatLon[], image: LandcoverImage): number[] {
+  const { extent: e, width, height, data } = image
+  const pw = (e.maxX - e.minX) / width
+  const urban: { x: number; y: number }[] = []
+  for (let j = 0; j < height; j++) {
+    for (let i = 0; i < width; i++) {
+      const k = (j * width + i) * 4
+      if (data[k + 3] !== 0 && isUrbanColor(data[k], data[k + 1], data[k + 2])) {
+        urban.push({ x: e.minX + (i + 0.5) * pw, y: e.maxY - (j + 0.5) * pw })
+      }
+    }
+  }
+  return points.map((p) => {
+    const m = toMercator(p)
+    // In Web Mercator le distanze sono dilatate di 1/cos(lat).
+    const scale = Math.cos(toRad(p.lat))
+    let best = Infinity
+    for (const u of urban) best = Math.min(best, Math.hypot(u.x - m.x, u.y - m.y))
+    return Math.max(0, best - pw / 2) * scale
   })
 }

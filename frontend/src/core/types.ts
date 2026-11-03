@@ -54,9 +54,11 @@ export interface ScoreInputs {
   humidityMeanPct: number
   /** Assente se il dato di vegetazione non è disponibile. */
   habitat?: Habitat
+  /** Distanza (m) dal centro abitato più vicino; `Infinity` se non ce ne sono. Assente se il dato non è disponibile. */
+  urbanDistanceM?: number
 }
 
-export type FactorId = 'season' | 'elevation' | 'temperature' | 'rain' | 'humidity' | 'habitat'
+export type FactorId = 'season' | 'elevation' | 'settlement' | 'temperature' | 'rain' | 'humidity' | 'habitat'
 export type Verdict = 'ottimale' | 'accettabile' | 'scarso'
 export type Band = 'veryLow' | 'low' | 'mediumLow' | 'mediumHigh' | 'high' | 'veryHigh'
 

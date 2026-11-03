@@ -29,6 +29,11 @@ export const LAPSE_RATE_C_PER_M = 0.0065
 // Quanto stagione e quota possono abbassare il punteggio: moltiplicatore = 1 − influenza × (1 − valore).
 export const SEASON_INFLUENCE = 0.7
 export const ELEVATION_INFLUENCE = 0.5
+export const SETTLEMENT_INFLUENCE = 0.3
+
+// Entro NEAR dall'abitato il fattore vale 0, oltre FAR vale 1, in mezzo cresce linearmente.
+export const SETTLEMENT_NEAR_M = 200
+export const SETTLEMENT_FAR_M = 1000
 
 const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 
@@ -115,6 +120,23 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
     trapezoidFactor('rain', 'Pioggia recente', 'mm', inputs.rainSumMm, weighted.rain, false),
     trapezoidFactor('humidity', 'Umidità media', '%', inputs.humidityMeanPct, weighted.humidity, false),
   ]
+  if (inputs.urbanDistanceM !== undefined) {
+    const d = inputs.urbanDistanceM
+    const value = Math.min(1, Math.max(0, (d - SETTLEMENT_NEAR_M) / (SETTLEMENT_FAR_M - SETTLEMENT_NEAR_M)))
+    factors.push({
+      id: 'settlement',
+      label: 'Vicinanza abitato',
+      value,
+      verdict: verdictFor(value),
+      blocking: true,
+      detail:
+        d >= SETTLEMENT_FAR_M
+          ? `nessun centro abitato entro ${SETTLEMENT_FAR_M / 1000} km`
+          : d < 25
+            ? 'in area urbana o industriale'
+            : `centro abitato a circa ${Math.round(d / 50) * 50} m`,
+    })
+  }
   if (weighted.habitat && inputs.habitat) {
     const { preferences } = weighted.habitat
     const value = preferences[inputs.habitat]
@@ -129,7 +151,11 @@ export function score(species: SpeciesRules, inputs: ScoreInputs): ScoreResult {
     })
   }
 
-  const influence: Partial<Record<FactorId, number>> = { season: SEASON_INFLUENCE, elevation: ELEVATION_INFLUENCE }
+  const influence: Partial<Record<FactorId, number>> = {
+    season: SEASON_INFLUENCE,
+    elevation: ELEVATION_INFLUENCE,
+    settlement: SETTLEMENT_INFLUENCE,
+  }
   const blockingProduct = factors
     .filter((f) => f.blocking)
     .reduce((acc, f) => acc * (1 - (influence[f.id] ?? 1) * (1 - f.value)), 1)
@@ -160,6 +186,7 @@ export function scoreGrid(
   month: number,
   day?: number,
   habitats?: Habitat[],
+  urbanDistancesM?: number[],
 ): ScoredCell[] {
   return cells.map((cell, i) => {
     const elevationM = elevationsM[i] ?? weather.referenceElevationM
@@ -172,6 +199,7 @@ export function scoreGrid(
       rainSumMm: weather.rainSumMm,
       humidityMeanPct: weather.humidityMeanPct,
       habitat: habitats?.[i],
+      urbanDistanceM: urbanDistancesM?.[i],
     }
     return { cell, inputs, result: score(species, inputs) }
   })

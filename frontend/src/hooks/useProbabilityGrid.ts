@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
-import { habitatBbox, habitatsFromImage } from '../core/landcover'
-import { scoreGrid } from '../core/scoring'
+import { habitatBbox, habitatsFromImage, urbanDistancesFromImage } from '../core/landcover'
+import { scoreGrid, SETTLEMENT_FAR_M } from '../core/scoring'
 import type { GridCell, Habitat, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
 import { fetchWeatherSummary } from '../core/weather'
 import { fetchLandcover } from '../services/corine'
@@ -10,6 +10,9 @@ import { GRID_RADIUS_M, GRID_RINGS } from '../config'
 
 export type HabitatStatus = 'loading' | 'ready' | 'failed'
 
+// Margine attorno alla griglia per vedere anche gli abitati appena fuori (1° di latitudine ≈ 111 km).
+const URBAN_MARGIN_DEG = SETTLEMENT_FAR_M / 111_000 * 1.5
+
 interface GridData {
   cells: GridCell[]
   elevations: number[]
@@ -17,6 +20,7 @@ interface GridData {
   month: number
   day: number
   habitats: Habitat[] | null
+  urbanDistances: number[] | null
   habitatStatus: HabitatStatus
   habitatError: string | null
 }
@@ -38,7 +42,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
     setError(null)
     try {
       const cells = generateGrid(center, GRID_RINGS, GRID_RADIUS_M)
-      const landcover = fetchLandcover(habitatBbox(cells)).then(
+      const landcover = fetchLandcover(habitatBbox(cells, undefined, URBAN_MARGIN_DEG)).then(
         (image) => ({ image, error: null }),
         (e: unknown) => {
           console.warn('Vegetazione (CORINE) non disponibile', e)
@@ -58,6 +62,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
         month: now.getMonth() + 1,
         day: now.getDate(),
         habitats: null,
+        urbanDistances: null,
         habitatStatus: 'loading',
         habitatError: null,
       })
@@ -69,6 +74,12 @@ export function useProbabilityGrid(species: SpeciesRules) {
           ...d,
           habitats: image
             ? habitatsFromImage(
+                cells.map((c) => c.center),
+                image,
+              )
+            : null,
+          urbanDistances: image
+            ? urbanDistancesFromImage(
                 cells.map((c) => c.center),
                 image,
               )
@@ -96,7 +107,16 @@ export function useProbabilityGrid(species: SpeciesRules) {
   const scored = useMemo(
     () =>
       data
-        ? scoreGrid(data.cells, data.elevations, data.weather, species, data.month, data.day, data.habitats ?? undefined)
+        ? scoreGrid(
+            data.cells,
+            data.elevations,
+            data.weather,
+            species,
+            data.month,
+            data.day,
+            data.habitats ?? undefined,
+            data.urbanDistances ?? undefined,
+          )
         : [],
     [data, species],
   )

@@ -3,8 +3,10 @@ import {
   habitatBbox,
   habitatFromColor,
   habitatsFromImage,
+  isUrbanColor,
   landcoverRequest,
   toMercator,
+  urbanDistancesFromImage,
   type LandcoverImage,
 } from './landcover'
 import type { GridCell } from './types'
@@ -79,5 +81,49 @@ describe('habitatBbox', () => {
   }
   it('si aggancia alla griglia verso l\'esterno', () => {
     expect(habitatBbox([cell], 0.005)).toEqual({ south: 45.995, west: 10.995, north: 46.005, east: 11.005 })
+  })
+  it('allarga il rettangolo del margine', () => {
+    expect(habitatBbox([cell], 0.005, 0.01)).toEqual({ south: 45.985, west: 10.985, north: 46.015, east: 11.015 })
+  })
+})
+
+describe('isUrbanColor', () => {
+  it('riconosce tessuto urbano e aree industriali', () => {
+    expect(isUrbanColor(230, 0, 77)).toBe(true)
+    expect(isUrbanColor(255, 0, 0)).toBe(true)
+    expect(isUrbanColor(204, 77, 242)).toBe(true)
+  })
+  it('scarta boschi e prati', () => {
+    expect(isUrbanColor(0, 166, 0)).toBe(false)
+    expect(isUrbanColor(230, 230, 77)).toBe(false)
+  })
+})
+
+describe('urbanDistancesFromImage', () => {
+  // 10×1 pixel da 100 m (Mercator) all'equatore; solo il primo pixel è urbano.
+  const px = (rgba: number[]) => rgba
+  const data = new Uint8ClampedArray(
+    Array.from({ length: 10 }, (_, i) => px(i === 0 ? [255, 0, 0, 255] : [0, 166, 0, 255])).flat(),
+  )
+  const image: LandcoverImage = { extent: { minX: 0, minY: 0, maxX: 1000, maxY: 100 }, width: 10, height: 1, data }
+  const at = (x: number, y: number) => {
+    const R = 6_378_137
+    return { lon: (x / R) * (180 / Math.PI), lat: (2 * Math.atan(Math.exp(y / R)) - Math.PI / 2) * (180 / Math.PI) }
+  }
+
+  it('0 dentro il pixel urbano', () => {
+    expect(urbanDistancesFromImage([at(50, 50)], image)[0]).toBe(0)
+  })
+  it('distanza dal bordo del pixel urbano', () => {
+    // centro pixel urbano a x=50, metà pixel 50 → punto a x=550: 500 − 50 = 450 m
+    expect(urbanDistancesFromImage([at(550, 50)], image)[0]).toBeCloseTo(450, 0)
+  })
+  it('Infinity senza pixel urbani', () => {
+    const none: LandcoverImage = { ...image, data: new Uint8ClampedArray(Array.from({ length: 10 }, () => [0, 166, 0, 255]).flat()) }
+    expect(urbanDistancesFromImage([at(500, 50)], none)[0]).toBe(Infinity)
+  })
+  it('pixel trasparenti non contano', () => {
+    const clear: LandcoverImage = { ...image, data: new Uint8ClampedArray(Array.from({ length: 10 }, () => [255, 0, 0, 0]).flat()) }
+    expect(urbanDistancesFromImage([at(50, 50)], clear)[0]).toBe(Infinity)
   })
 })

@@ -143,6 +143,36 @@ describe('fattore vegetazione', () => {
   })
 })
 
+describe('fattore vicinanza abitato', () => {
+  const at = (urbanDistanceM?: number) => score(species, { ...optimal, urbanDistanceM })
+  it('senza dato non entra nel calcolo', () => {
+    expect(at().factors.some((f) => f.id === 'settlement')).toBe(false)
+    expect(at().score).toBe(100)
+  })
+  it('oltre 1 km non penalizza', () => {
+    expect(at(1000).score).toBe(100)
+    expect(at(Infinity).score).toBe(100)
+  })
+  it('entro 200 m applica il moltiplicatore minimo', () => {
+    expect(at(0).score).toBe(70)
+    expect(at(200).score).toBe(70)
+  })
+  it('cresce linearmente tra 200 m e 1 km', () => {
+    // 600 m → valore 0,5 → 1 − 0,3 × 0,5 = 0,85
+    expect(at(600).score).toBe(85)
+    expect(at(600).factors.find((f) => f.id === 'settlement')?.detail).toContain('600 m')
+  })
+  it('scoreGrid passa la distanza di ogni cella', () => {
+    const cells: GridCell[] = [
+      { id: 'a', center: { lat: 0, lon: 0 }, polygon: [] },
+      { id: 'b', center: { lat: 0, lon: 0 }, polygon: [] },
+    ]
+    const weather = { referenceElevationM: 1000, tempMeanC: 15, rainSumMm: 70, humidityMeanPct: 85 }
+    const [a, b] = scoreGrid(cells, [1000, 1000], weather, species, 9, undefined, undefined, [100, 2000])
+    expect(a.result.score).toBeLessThan(b.result.score)
+  })
+})
+
 describe('scoreGrid', () => {
   it('corregge la temperatura in base alla quota della cella', () => {
     const cells: GridCell[] = [
