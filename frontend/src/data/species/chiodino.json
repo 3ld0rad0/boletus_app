@@ -1,0 +1,15 @@
+{
+  "id": "chiodino",
+  "name": "Chiodino",
+  "latinName": "Armillaria mellea",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Attenzione: si confonde con Galerina marginata (mortale) e va consumato solo ben cotto.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0.1, 0.1, 0.2, 0.4, 0.9, 1, 0.8, 0.2],
+    "elevation": { "min": 0, "optMin": 200, "optMax": 1500, "max": 2000 }
+  },
+  "weighted": {
+    "temperature": { "min": 5, "optMin": 10, "optMax": 20, "max": 26, "weight": 0.3 },
+    "rain": { "min": 10, "optMin": 30, "optMax": 120, "max": 250, "weight": 0.45 },
+    "humidity": { "min": 55, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.25 }
+  }
+}

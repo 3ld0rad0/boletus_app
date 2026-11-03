@@ -1,0 +1,15 @@
+{
+  "id": "mazza-di-tamburo",
+  "name": "Mazza di tamburo",
+  "latinName": "Macrolepiota procera",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Attenzione: si confonde con Chlorophyllum molybdites e lepiote tossiche; consumare solo ben cotta.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0.1, 0.4, 0.7, 0.9, 1, 1, 0.4, 0],
+    "elevation": { "min": 0, "optMin": 100, "optMax": 1200, "max": 1700 }
+  },
+  "weighted": {
+    "temperature": { "min": 10, "optMin": 15, "optMax": 24, "max": 30, "weight": 0.3 },
+    "rain": { "min": 10, "optMin": 25, "optMax": 90, "max": 200, "weight": 0.4 },
+    "humidity": { "min": 50, "optMin": 65, "optMax": 100, "max": 100, "weight": 0.3 }
+  }
+}

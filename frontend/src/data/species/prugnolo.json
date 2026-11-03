@@ -1,0 +1,15 @@
+{
+  "id": "prugnolo",
+  "name": "Prugnolo",
+  "latinName": "Calocybe gambosa",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Attenzione: si confonde con Entoloma lividum (tossico).",
+  "blocking": {
+    "season": [0, 0, 0.1, 0.6, 1, 0.7, 0.1, 0, 0, 0.1, 0, 0],
+    "elevation": { "min": 0, "optMin": 200, "optMax": 1200, "max": 1800 }
+  },
+  "weighted": {
+    "temperature": { "min": 4, "optMin": 9, "optMax": 18, "max": 24, "weight": 0.35 },
+    "rain": { "min": 5, "optMin": 20, "optMax": 80, "max": 180, "weight": 0.4 },
+    "humidity": { "min": 45, "optMin": 65, "optMax": 100, "max": 100, "weight": 0.25 }
+  }
+}

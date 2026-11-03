@@ -1,0 +1,15 @@
+{
+  "id": "ovolo",
+  "name": "Ovolo buono",
+  "latinName": "Amanita caesarea",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Attenzione: si confonde con Amanita muscaria e con amanite mortali (es. A. phalloides, A. verna) allo stadio di uovo.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0, 0.1, 0.7, 1, 1, 0.6, 0.1, 0],
+    "elevation": { "min": 0, "optMin": 100, "optMax": 900, "max": 1300 }
+  },
+  "weighted": {
+    "temperature": { "min": 15, "optMin": 20, "optMax": 28, "max": 33, "weight": 0.35 },
+    "rain": { "min": 10, "optMin": 30, "optMax": 90, "max": 200, "weight": 0.4 },
+    "humidity": { "min": 50, "optMin": 65, "optMax": 100, "max": 100, "weight": 0.25 }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "rosito",
+  "name": "Rosito",
+  "latinName": "Lactarius deliciosus",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Cresce sotto conifere (pinete). Attenzione: si confonde con altri Lactarius tossici (es. L. torminosus) e va consumato solo ben cotto.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0, 0.1, 0.2, 0.5, 0.9, 1, 0.8, 0.1],
+    "elevation": { "min": 0, "optMin": 100, "optMax": 1400, "max": 1900 }
+  },
+  "weighted": {
+    "temperature": { "min": 6, "optMin": 11, "optMax": 20, "max": 26, "weight": 0.35 },
+    "rain": { "min": 15, "optMin": 40, "optMax": 120, "max": 250, "weight": 0.4 },
+    "humidity": { "min": 55, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.25 }
+  }
+}
