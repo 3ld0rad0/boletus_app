@@ -15,7 +15,7 @@ export interface WeightedTrapezoid extends Trapezoid {
   weight: number
 }
 
-/** Tipo di vegetazione/uso del suolo di una cella (da OpenStreetMap). */
+/** Tipo di vegetazione di una cella (da CORINE Land Cover). */
 export type Habitat = 'conifer' | 'broadleaf' | 'mixed' | 'forest' | 'grassland' | 'none'
 
 /** Preferenza 0..1 della specie per ciascun habitat. */

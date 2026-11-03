@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
+import { habitatBbox, habitatsFromImage } from '../core/landcover'
 import { scoreGrid } from '../core/scoring'
 import type { GridCell, Habitat, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
-import { habitatAt, habitatBbox } from '../core/vegetation'
 import { fetchWeatherSummary } from '../core/weather'
-import { fetchHabitatAreas } from '../services/overpass'
+import { fetchLandcover } from '../services/corine'
 import { fetchElevations } from '../services/terrarium'
 import { GRID_RADIUS_M, GRID_RINGS } from '../config'
 
@@ -18,6 +18,7 @@ interface GridData {
   day: number
   habitats: Habitat[] | null
   habitatStatus: HabitatStatus
+  habitatError: string | null
 }
 
 /**
@@ -37,9 +38,12 @@ export function useProbabilityGrid(species: SpeciesRules) {
     setError(null)
     try {
       const cells = generateGrid(center, GRID_RINGS, GRID_RADIUS_M)
-      const habitatAreas = fetchHabitatAreas(habitatBbox(cells)).then(
-        (areas) => areas,
-        () => null,
+      const landcover = fetchLandcover(habitatBbox(cells)).then(
+        (image) => ({ image, error: null }),
+        (e: unknown) => {
+          console.warn('Vegetazione (CORINE) non disponibile', e)
+          return { image: null, error: e instanceof Error ? e.message : 'errore sconosciuto' }
+        },
       )
       const [weather, elevations] = await Promise.all([
         fetchWeatherSummary(center),
@@ -55,15 +59,22 @@ export function useProbabilityGrid(species: SpeciesRules) {
         day: now.getDate(),
         habitats: null,
         habitatStatus: 'loading',
+        habitatError: null,
       })
       setLoading(false)
-      const areas = await habitatAreas
+      const { image, error: habitatError } = await landcover
       if (id !== requestId.current) return
       setData((d) =>
         d && {
           ...d,
-          habitats: areas ? cells.map((c) => habitatAt(c.center, areas)) : null,
-          habitatStatus: areas ? 'ready' : 'failed',
+          habitats: image
+            ? habitatsFromImage(
+                cells.map((c) => c.center),
+                image,
+              )
+            : null,
+          habitatStatus: image ? 'ready' : 'failed',
+          habitatError,
         },
       )
     } catch (e) {
@@ -94,6 +105,8 @@ export function useProbabilityGrid(species: SpeciesRules) {
     scored,
     weather: data?.weather ?? null,
     habitatStatus: data?.habitatStatus ?? null,
+    habitatError: data?.habitatError ?? null,
+    habitatCells: data?.habitats ? data.habitats.filter((h) => h !== 'none').length : null,
     loading,
     error,
     compute,

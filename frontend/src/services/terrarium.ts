@@ -1,7 +1,8 @@
-import { elevationsFromTiles, TILE_SIZE } from '../core/elevation'
+import { elevationsFromTiles } from '../core/elevation'
 import { fetchWithRetry } from '../core/http'
 import { fetchPersistent } from '../core/persistentCache'
 import type { LatLon } from '../core/types'
+import { readPixels } from './pixels'
 import { TERRARIUM_CACHE_MAX_TILES } from '../config'
 
 const TILE_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
@@ -18,16 +19,7 @@ async function downloadTile(z: number, x: number, y: number): Promise<Uint8Clamp
     storage: typeof caches === 'undefined' ? undefined : caches,
   })
   if (!res.ok) throw new Error(`Tile quote non disponibile (${res.status})`)
-  // Senza conversione di colore i pixel restano esattamente quelli codificati.
-  const bitmap = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none' })
-  const canvas = document.createElement('canvas')
-  canvas.width = TILE_SIZE
-  canvas.height = TILE_SIZE
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) throw new Error('Canvas non disponibile')
-  ctx.drawImage(bitmap, 0, 0)
-  bitmap.close()
-  return ctx.getImageData(0, 0, TILE_SIZE, TILE_SIZE).data
+  return (await readPixels(await res.blob())).data
 }
 
 function loadTile(z: number, x: number, y: number): Promise<Uint8ClampedArray> {

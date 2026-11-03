@@ -32,7 +32,7 @@ boletus_app/
 **Dati esterni** (gratuiti, senza chiave):
 - [Open-Meteo](https://open-meteo.com/): meteo degli ultimi 10 giorni (una richiesta per area, con cache e retry sui 429);
 - [Terrain Tiles (Terrarium)](https://registry.opendata.aws/terrain-tiles/) su AWS: quote di ogni cella, lette nel browser dai pixel delle tile (dati SRTM, Mapzen e altri, vedi attribuzioni nel link);
-- [Overpass API](https://overpass-api.de/) (OpenStreetMap, © contributori OpenStreetMap, ODbL): boschi e prati dell'area, per il fattore vegetazione. Una richiesta per area, con cache e retry; se fallisce il punteggio viene calcolato senza vegetazione;
+- [CORINE Land Cover 2018](https://land.copernicus.eu/pan-european/corine-land-cover) (Copernicus / EEA), tramite il servizio immagini dell'EEA: boschi di conifere, latifoglie, misti e prati dell'area, per il fattore vegetazione. Una piccola immagine per area (pochi KB), letta nel browser pixel per pixel, con cache e retry; risoluzione 100 m. Se fallisce il punteggio viene calcolato senza vegetazione;
 - [Thunderforest](https://www.thunderforest.com/) (Outdoors): tile della mappa, richiedono una chiave in `VITE_THUNDERFOREST_API_KEY` (da limitare per dominio). Senza chiave si ripiega su OpenTopoMap; `VITE_TILE_URL` permette di usare un altro provider.
 
 ### Come si calcola il punteggio
@@ -46,7 +46,8 @@ moltiplicatore = 1 − influenza × (1 − valore)
 
 - **Stagione** e **quota** agiscono da moltiplicatori *moderati*, non bloccanti: con influenza 0,7 per la stagione e 0,5 per la quota (`SEASON_INFLUENCE` e `ELEVATION_INFLUENCE` in `scoring.ts`) un valore 0 riduce il punteggio al 30% e al 50%, senza azzerarlo. Il valore di stagione di ogni mese vale a metà mese e si interpola linearmente tra mesi adiacenti in base al giorno.
 - **Temperatura** (media degli ultimi 5 giorni, corretta per la quota di ogni cella di −0,65 °C ogni 100 m), **pioggia** (totale degli ultimi 10 giorni) e **umidità** (media degli ultimi 10 giorni) si combinano con i pesi definiti nel JSON.
-- **Vegetazione** (facoltativa per specie): l'habitat della cella (bosco di conifere, latifoglie, misto, bosco generico, prato o nessuno) viene da OpenStreetMap e confrontato con le preferenze `weighted.habitat` della specie. Se il dato manca, o la specie non ha la regola, il fattore non entra nella media.
+- **Vegetazione** (facoltativa per specie): l'habitat della cella (bosco di conifere, latifoglie, misto, bosco generico, prato o nessuno) viene da CORINE Land Cover e confrontato con le preferenze `weighted.habitat` della specie. Se il dato manca, o la specie non ha la regola, il fattore non entra nella media.
+- **Bosco probabile** (solo Calabria): nei dettagli della cella compare una stima del tipo di bosco (faggeta, castagneto o querceto, pineta di pino laricio, ecc.) ricavata da habitat CORINE e quota (`core/forestType.ts`). È un'euristica, non un dato rilevato, e non entra nel punteggio.
 - Fasce: molto bassa (< 17), bassa (17–32), medio-bassa (33–49), medio-alta (50–65), alta (66–82), molto alta (≥ 83).
 - Il meteo viene letto in un solo punto (il centro della griglia): pioggia e umidità sono quindi uguali in tutte le celle, mentre quota e temperatura variano da cella a cella.
 
@@ -125,7 +126,7 @@ cd backend && .venv/bin/pytest
 - [ ] Validare con un esperto le regole delle specie e aggiungerne altre
 - [ ] PWA e funzionamento offline (mappa in cache)
 - [ ] App mobile con Capacitor: GPS nativo, tracciamento in background, bussola
-- [ ] Habitat e tipo di bosco (es. Corine Land Cover, OpenStreetMap)
+- [ ] Habitat più dettagliato (es. specie arboree, CORINE copre conifere/latifoglie/misti a 100 m)
 - [ ] Traccia del percorso e segnalazione dei ritrovamenti
 - [ ] PostgreSQL e deploy
 

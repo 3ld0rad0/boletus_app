@@ -1,4 +1,5 @@
 import type { ScoredCell, SpeciesRules } from '../core/types'
+import { probableForest } from '../core/forestType'
 import { RAIN_WINDOW_DAYS, TEMP_WINDOW_DAYS } from '../core/weather'
 import { BAND_COLORS, BAND_LABELS } from '../config'
 
@@ -10,6 +11,7 @@ interface Props {
 
 export function ScoreDetails({ cell, species, onClose }: Props) {
   const { result } = cell
+  const forest = probableForest(cell)
   return (
     <section className="score-details" aria-label="Dettagli punteggio">
       <header>
@@ -41,11 +43,17 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
           </li>
         ))}
       </ul>
+      {forest && (
+        <p>
+          <strong>Bosco probabile:</strong> {forest}{' '}
+          <small className="muted">(stima da CORINE e quota, valida per la Calabria)</small>
+        </p>
+      )}
       <p className="muted">
         Meteo Open-Meteo: temperatura media degli ultimi {TEMP_WINDOW_DAYS} giorni corretta per la quota, pioggia
         totale e umidità media degli ultimi {RAIN_WINDOW_DAYS} giorni.
         {result.factors.some((f) => f.id === 'habitat') &&
-          ' Vegetazione da OpenStreetMap: i dati possono essere incompleti, dove bosco e prati non sono mappati la cella risulta senza vegetazione.'}
+          ' Vegetazione da CORINE Land Cover 2018 (100 m): boschi e prati più piccoli di circa 25 ha possono non comparire.'}
       </p>
     </section>
   )

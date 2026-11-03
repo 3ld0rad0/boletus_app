@@ -42,7 +42,7 @@ export const HABITAT_LABELS: Record<Habitat, string> = {
   mixed: 'bosco misto',
   forest: 'bosco',
   grassland: 'prato o pascolo',
-  none: 'nessun bosco o prato mappato',
+  none: 'nessun bosco o prato rilevato',
 }
 
 /** Valore di stagione: i valori mensili valgono a metà mese e si interpolano linearmente tra mesi adiacenti. */

@@ -93,7 +93,15 @@ export default function App() {
         {grid.error && <p className="warning">{grid.error}</p>}
         {grid.habitatStatus === 'loading' && <p className="muted">Carico la vegetazione…</p>}
         {grid.habitatStatus === 'failed' && (
-          <p className="muted">Vegetazione non disponibile: il punteggio non la include.</p>
+          <p className="muted">
+            Vegetazione non disponibile{grid.habitatError ? ` (${grid.habitatError})` : ''}: il punteggio non la
+            include.
+          </p>
+        )}
+        {grid.habitatStatus === 'ready' && grid.habitatCells !== null && (
+          <p className="muted">
+            Vegetazione: {grid.habitatCells} celle su {grid.scored.length} in bosco o prato.
+          </p>
         )}
         {grid.scored.length > 0 && (
           <>
