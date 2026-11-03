@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { searchPlaces, type Place } from '../core/geocoding'
+import { useRecentPlaces } from '../hooks/useRecentPlaces'
 import { Icon } from './Icon'
 
 const LIVE_DELAY_MS = 350
@@ -16,10 +17,21 @@ export function PlaceSearch({ onSelect }: Props) {
   const [results, setResults] = useState<Place[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const { recent, add: addRecent } = useRecentPlaces()
   const timer = useRef<number | undefined>(undefined)
   const requestId = useRef(0)
 
   useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (!(e.target as Element).closest('.search-box, .search-results')) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [open])
 
   const run = async (text: string) => {
     const id = ++requestId.current
@@ -66,6 +78,8 @@ export function PlaceSearch({ onSelect }: Props) {
   const choose = (place: Place) => {
     reset()
     setQuery(place.name)
+    setOpen(false)
+    addRecent(place)
     onSelect(place)
   }
 
@@ -74,7 +88,25 @@ export function PlaceSearch({ onSelect }: Props) {
     setQuery('')
   }
 
-  const hasPanel = busy || error !== null || results !== null
+  const needle = query.trim().toLowerCase()
+  // Con un luogo già scelto nel campo si mostrano tutti i recenti, non solo quello.
+  const suggestions = recent.some((p) => p.name === query)
+    ? recent
+    : needle.length < LIVE_MIN_CHARS
+      ? recent.filter((p) => p.name.toLowerCase().includes(needle))
+      : []
+  const showRecent = open && !busy && error === null && results === null && suggestions.length > 0
+  const hasPanel = busy || error !== null || results !== null || showRecent
+
+  const placeButton = (p: Place, icon: 'locate' | 'clock') => (
+    <button key={p.id} type="button" onClick={() => choose(p)}>
+      <Icon name={icon} />
+      <span>
+        {p.name}
+        {p.detail && <small>{p.detail}</small>}
+      </span>
+    </button>
+  )
 
   return (
     <>
@@ -84,6 +116,12 @@ export function PlaceSearch({ onSelect }: Props) {
           type="search"
           value={query}
           onChange={(e) => onChange(e.target.value)}
+          onFocus={(e) => {
+            e.target.select()
+            setOpen(true)
+          }}
+          onClick={() => setOpen(true)}
+          onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
           placeholder="Cerca un luogo…"
           aria-label="Cerca un luogo"
           autoComplete="off"
@@ -99,15 +137,9 @@ export function PlaceSearch({ onSelect }: Props) {
           {busy && <p>Cerco…</p>}
           {error && <p className="warning">{error}</p>}
           {!busy && results && results.length === 0 && <p>Nessun risultato</p>}
-          {results?.map((p) => (
-            <button key={p.id} type="button" onClick={() => choose(p)}>
-              <Icon name="locate" />
-              <span>
-                {p.name}
-                {p.detail && <small>{p.detail}</small>}
-              </span>
-            </button>
-          ))}
+          {showRecent && <p>Ricerche recenti</p>}
+          {showRecent && suggestions.map((p) => placeButton(p, 'clock'))}
+          {results?.map((p) => placeButton(p, 'locate'))}
         </div>
       )}
     </>
