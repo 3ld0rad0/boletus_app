@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fetchPersistent } from './persistentCache'
+import { fetchPersistent, flushPersistentWrites } from './persistentCache'
 
 function fakeStorage() {
   const entries = new Map<string, Response>()
@@ -9,7 +9,7 @@ function fakeStorage() {
     keys: async () => [...entries.keys()].map((url) => new Request(url)),
     delete: async (req: Request) => entries.delete(req.url),
   }
-  return { entries, storage: { open: async () => cache as never } }
+  return { entries, cache, storage: { open: async () => cache as never } }
 }
 
 const ok = () => Promise.resolve(new Response('png'))
@@ -20,6 +20,7 @@ describe('fetchPersistent', () => {
     const { storage } = fakeStorage()
     const fetchFn = vi.fn(ok)
     await fetchPersistent('http://x/a', { ...base, fetchFn, storage })
+    await flushPersistentWrites()
     const second = await fetchPersistent('http://x/a', { ...base, fetchFn, storage })
     expect(await second.text()).toBe('png')
     expect(fetchFn).toHaveBeenCalledTimes(1)
@@ -34,7 +35,25 @@ describe('fetchPersistent', () => {
   it('oltre il tetto elimina le voci più vecchie', async () => {
     const { entries, storage } = fakeStorage()
     for (const name of ['a', 'b', 'c']) await fetchPersistent(`http://x/${name}`, { ...base, fetchFn: ok, storage })
+    await flushPersistentWrites()
     expect([...entries.keys()]).toEqual(['http://x/b', 'http://x/c'])
+  })
+  it('restituisce la risposta senza attendere il salvataggio', async () => {
+    const { cache } = fakeStorage()
+    let release!: () => void
+    const slow = { ...cache, put: () => new Promise<void>((r) => (release = r)) }
+    const res = await fetchPersistent('http://x/a', { ...base, fetchFn: ok, storage: { open: async () => slow as never } })
+    expect(await res.text()).toBe('png')
+    release()
+    await flushPersistentWrites()
+  })
+  it('non elenca le chiavi a ogni scrittura nelle cache grandi', async () => {
+    const { cache } = fakeStorage()
+    const keys = vi.spyOn(cache, 'keys')
+    const opts = { cacheName: 'big', maxEntries: 100, fetchFn: ok, storage: { open: async () => cache as never } }
+    for (let i = 0; i < 30; i++) await fetchPersistent(`http://x/${i}`, opts)
+    await flushPersistentWrites()
+    expect(keys.mock.calls.length).toBeLessThanOrEqual(4)
   })
   it('senza storage va direttamente in rete', async () => {
     const fetchFn = vi.fn(ok)
