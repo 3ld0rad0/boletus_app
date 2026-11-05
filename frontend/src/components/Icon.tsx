@@ -18,6 +18,7 @@ export type IconName =
   | 'warning'
   | 'arrow'
   | 'cloud'
+  | 'mushroom'
 
 const PATHS: Record<IconName, ReactNode> = {
   search: (
@@ -88,6 +89,13 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M12 3 2.8 20h18.4L12 3Z" />
       <path d="M12 9v4M12 17h.01" />
+    </>
+  ),
+  mushroom: (
+    <>
+      <path d="M3 12.5a9 8.5 0 0 1 18 0Z" />
+      <path d="M9.5 12.5V18a2.5 2.5 0 0 0 5 0v-5.5" />
+      <path d="M8 9.5h.01M12 8h.01M16 9.5h.01" />
     </>
   ),
   cloud: <path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5H7Z" />,

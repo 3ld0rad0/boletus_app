@@ -141,7 +141,15 @@ export default function App() {
             <Icon name="info" />
           </button>
         </div>
-        <SpeciesSelector species={SPECIES} value={speciesId} onChange={setSpeciesId} />
+        <SpeciesSelector
+          species={SPECIES}
+          value={speciesId}
+          onChange={setSpeciesId}
+          onSearch={(id) => {
+            setSpeciesId(id)
+            compute(position ?? mapCenter.current)
+          }}
+        />
       </header>
 
       <div className="status-chips">
