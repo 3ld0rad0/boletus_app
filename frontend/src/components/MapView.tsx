@@ -32,7 +32,7 @@ interface Props {
 }
 
 const GRID_STYLE: L.PathOptions = { color: '#333', weight: 0.5, opacity: 0.4, fillOpacity: 0.4 }
-const SELECTED_STYLE: L.PathOptions = { color: '#111', weight: 3, opacity: 1 }
+const SELECTED_STYLE: L.PathOptions = { color: '#fff', weight: 5, opacity: 1 }
 // Visibile anche senza tessere di mappa, per tornare al punto di partenza.
 const HOME_LINE_STYLE: L.PolylineOptions = { color: '#173f32', weight: 4, opacity: 0.85, dashArray: '2 9', lineCap: 'round', interactive: false }
 const TRACK_STYLE: L.PolylineOptions = { color: '#bd5c32', weight: 4, opacity: 0.9, lineJoin: 'round', interactive: false }
