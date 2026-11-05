@@ -11,6 +11,7 @@ import { ScoreDetails } from './components/ScoreDetails'
 import { SpeciesSelector } from './components/SpeciesSelector'
 import { StartPointPanel } from './components/StartPointPanel'
 import type { LatLon } from './core/types'
+import { bearingDeg, cardinal, formatDistance, haversineM } from './core/geo'
 import { SPECIES } from './data/species'
 import { useAuth } from './hooks/useAuth'
 import { useCompass } from './hooks/useCompass'
@@ -19,6 +20,7 @@ import { useOnline } from './hooks/useOnline'
 import { useProbabilityGrid } from './hooks/useProbabilityGrid'
 import { useSpots } from './hooks/useSpots'
 import { useStartPoint } from './hooks/useStartPoint'
+import { useSunsetWarning } from './hooks/useSunsetWarning'
 import { useTheme } from './hooks/useTheme'
 import { useTrack } from './hooks/useTrack'
 import { DEFAULT_CENTER, GRID_RADIUS_M } from './config'
@@ -34,6 +36,7 @@ export default function App() {
   // Con un punto di partenza salvato il percorso si registra anche a schermo spento (app nativa).
   const { position, error: locationError } = useLocation(start.startPoint !== null)
   const track = useTrack(position, start.startPoint)
+  const sunset = useSunsetWarning(start.startPoint)
   const online = useOnline()
   const compass = useCompass()
   const { theme, toggle: toggleTheme } = useTheme()
@@ -79,6 +82,17 @@ export default function App() {
   }
   const habitatLoading = grid.habitatStatus === 'loading'
   const sheetLabel = sheetExpanded ? 'Riduci pannello' : 'Espandi pannello'
+
+  const sunsetText = (() => {
+    if (!sunset.warning) return ''
+    const { sunset: at, minutesLeft } = sunset.warning
+    const time = at.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+    const when = minutesLeft > 0 ? `Tramonto alle ${time} (tra ${minutesLeft} min)` : `Il sole è tramontato (${time})`
+    if (!position || !start.startPoint) return `${when}. Torna verso il punto di partenza.`
+    const distance = formatDistance(haversineM(position, start.startPoint))
+    const direction = cardinal(bearingDeg(position, start.startPoint))
+    return `${when}. Torna al punto di partenza: ${distance} verso ${direction}.`
+  })()
 
   return (
     <main className="app-shell">
@@ -143,6 +157,16 @@ export default function App() {
           </span>
         )}
       </div>
+
+      {sunset.warning && (
+        <div className="banner sunset-alert" role="alert">
+          <Icon name="clock" />
+          <span>{sunsetText}</span>
+          <button type="button" onClick={sunset.dismiss}>
+            Chiudi
+          </button>
+        </div>
+      )}
 
       {selectedCell ? (
         <ScoreDetails cell={selectedCell} species={species} onClose={() => setSelectedCellId(null)} />

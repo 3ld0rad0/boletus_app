@@ -127,6 +127,7 @@
 .legend { margin-top: 14px; border-top: 1px solid var(--line); }.legend > button { width: 100%; min-height: 58px; display: flex; align-items: center; justify-content: space-between; text-align: left; border: 0; background: none; color: var(--ink); padding: 7px 0; }.legend > button span,.legend > button small { display: block; }.legend > button small { color: var(--muted); }.legend-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px 12px; padding-bottom: 10px; }.legend-grid div { display: flex; align-items: center; gap: 8px; font-size: 13px; }.legend-grid i { width: 22px; height: 22px; border-radius: 7px; border: 1px solid rgba(0,0,0,.12); }.legend-grid span,.legend-grid small { display: block; }.legend-grid small { color: var(--muted); }
 .tip { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; margin: 4px 0 0; }
 .banner { min-height: 52px; margin-bottom: 10px; padding: 8px 9px; border-radius: 12px; display: flex; align-items: center; gap: 8px; background: #fff4d0; color: #594200; font-size: 13px; font-weight: 700; }.banner button { border: 0; background: none; text-decoration: underline; font-weight: 800; margin-left: auto; color: inherit; }.banner.gps { background: #f9dddd; color: #711818; }
+.banner.sunset-alert { position: absolute; z-index: 8; top: 190px; left: 12px; right: 12px; margin: 0; background: #ffe2b8; color: #5a3000; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
 .loading-state { min-height: 108px; display: flex; align-items: center; justify-content: center; gap: 14px; }.loading-state p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }.spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--sand-200); border-top-color: #173f32; animation: spin .8s linear infinite; }
 
 .detail-sheet { height: min(82dvh, 730px); padding: 10px 17px calc(18px + env(safe-area-inset-bottom)); overflow-y: auto; }
@@ -150,6 +151,7 @@
 @media (min-width: 700px) {
   .top-controls { width: min(420px,calc(100% - 24px)); right: auto; }
   .species-nav { display: grid; }
+  .banner.sunset-alert { right: auto; width: min(420px, calc(100% - 24px)); }
   .species-row.species-row.species-row { mask-image: none; }
   .bottom-sheet { width: 420px; left: 14px; bottom: 14px; border-radius: 24px; padding-bottom: 0; }
   .detail-sheet { width: 420px; left: 14px; bottom: 14px; right: auto; border-radius: 24px; }
