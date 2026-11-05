@@ -1,8 +1,12 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ScoredCell, SpeciesRules } from '../core/types'
 import { probableForest } from '../core/forestType'
 import { RAIN_WINDOW_DAYS, TEMP_WINDOW_DAYS } from '../core/weather'
 import { BAND_COLORS, BAND_LABELS } from '../config'
+import { SPECIES_INFO } from '../data/speciesInfo'
 import { Icon } from './Icon'
+import { SpeciesInfoSheet } from './SpeciesInfoSheet'
 
 interface Props {
   cell: ScoredCell
@@ -13,6 +17,8 @@ interface Props {
 const LIGHT_BANDS = new Set(['mediumHigh', 'high'])
 
 export function ScoreDetails({ cell, species, onClose }: Props) {
+  const [infoOpen, setInfoOpen] = useState(false)
+  const speciesInfo = SPECIES_INFO[species.id]
   const { result } = cell
   const forest = probableForest(cell)
   return (
@@ -31,9 +37,21 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
             Probabilità {BAND_LABELS[result.band].toLowerCase()}
           </span>
         </div>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi dettaglio">
-          <Icon name="close" />
-        </button>
+        <div className="detail-actions">
+          {speciesInfo && (
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setInfoOpen(true)}
+              aria-label={`Scheda informativa: ${species.name}`}
+            >
+              <Icon name="info" />
+            </button>
+          )}
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi dettaglio">
+            <Icon name="close" />
+          </button>
+        </div>
       </div>
       <p className="detail-note">
         Stagione, quota e vicinanza ai centri abitati abbassano il punteggio in modo graduale, senza azzerarlo.
@@ -65,6 +83,13 @@ export function ScoreDetails({ cell, species, onClose }: Props) {
         {result.factors.some((f) => f.id === 'habitat') &&
           ' Vegetazione da CORINE Land Cover 2018 (100 m): boschi e prati più piccoli di circa 25 ha possono non comparire.'}
       </p>
+      {infoOpen &&
+        speciesInfo &&
+        // Portale: il pannello di dettaglio ha un proprio stacking context e coprirebbe la scheda.
+        createPortal(
+          <SpeciesInfoSheet species={species} info={speciesInfo} onClose={() => setInfoOpen(false)} />,
+          document.body,
+        )}
     </div>
   )
 }

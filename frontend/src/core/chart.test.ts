@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dailyRain, nearestIndex, valueRange } from './chart'
+import { dailyRain, nearestIndex, rangeStatus, valueRange } from './chart'
 import type { HourlyPoint } from './types'
 
 const point = (iso: string, rainMm: number | null): HourlyPoint => ({
@@ -38,5 +38,16 @@ describe('nearestIndex', () => {
   it('trova il punto più vicino', () => {
     expect(nearestIndex([0, 10, 20], 12)).toBe(1)
     expect(nearestIndex([0, 10, 20], 100)).toBe(2)
+  })
+})
+
+describe('rangeStatus', () => {
+  const range = { min: 13, max: 22 }
+  it('classifica rispetto alla fascia ottimale', () => {
+    expect(rangeStatus(15, range)).toBe('ottimale')
+    expect(rangeStatus(13, range)).toBe('ottimale')
+    expect(rangeStatus(22, range)).toBe('ottimale')
+    expect(rangeStatus(10, range)).toBe('sotto')
+    expect(rangeStatus(25, range)).toBe('sopra')
   })
 })

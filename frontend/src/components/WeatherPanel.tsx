@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { LatLon, WeatherSummary } from '../core/types'
+import type { LatLon, SpeciesRules, WeatherSummary } from '../core/types'
 import { fetchWeatherSummary } from '../core/weather'
 import { describeWeatherCode } from '../core/weatherCode'
 import { Icon } from './Icon'
@@ -13,6 +13,8 @@ interface Place {
 
 interface Props {
   places: Place[]
+  /** Fungo cercato: ne mostriamo le condizioni ottimali sui grafici. */
+  species: SpeciesRules
   onClose: () => void
 }
 
@@ -21,7 +23,7 @@ const timeLabel = (t: number) => new Date(t * 1000).toLocaleTimeString('it-IT', 
 
 type Result = { key: string; data: WeatherSummary } | { key: string; error: string }
 
-export function WeatherPanel({ places, onClose }: Props) {
+export function WeatherPanel({ places, species, onClose }: Props) {
   const [selectedId, setSelectedId] = useState(places[0]?.id)
   const place = places.find((p) => p.id === selectedId) ?? places[0]
   const point = place.point
@@ -114,7 +116,15 @@ export function WeatherPanel({ places, onClose }: Props) {
           {current.history && current.history.length > 1 && (
             <>
               <h3 className="weather-subtitle">Ultimi 10 giorni</h3>
-              <WeatherHistory history={current.history} elevationM={current.referenceElevationM} />
+              <p className="weather-subtitle-note">
+                Fascia verde = condizioni ottimali per <strong>{species.name}</strong>
+              </p>
+              <WeatherHistory
+                history={current.history}
+                elevationM={current.referenceElevationM}
+                species={species}
+                summary={current}
+              />
             </>
           )}
         </>

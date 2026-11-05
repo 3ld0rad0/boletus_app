@@ -255,3 +255,41 @@
 .species-info::-webkit-scrollbar-thumb, .compare::-webkit-scrollbar-thumb, .detail-sheet::-webkit-scrollbar-thumb, .sheet-content::-webkit-scrollbar-thumb, .full-panel::-webkit-scrollbar-thumb, .search-results::-webkit-scrollbar-thumb { background: var(--sb-thumb); border: 3px solid transparent; background-clip: padding-box; border-radius: 10px; }
 .species-info::-webkit-scrollbar-thumb:hover, .compare::-webkit-scrollbar-thumb:hover, .detail-sheet::-webkit-scrollbar-thumb:hover, .sheet-content::-webkit-scrollbar-thumb:hover, .full-panel::-webkit-scrollbar-thumb:hover, .search-results::-webkit-scrollbar-thumb:hover { background: var(--forest-700); background-clip: padding-box; }
 @supports not selector(::-webkit-scrollbar) { .species-info, .compare, .detail-sheet, .sheet-content, .full-panel, .search-results { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; } }
+.search-box input[type="search"]::-webkit-search-cancel-button, .search-box input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+.show-start { grid-column: 1 / -1; margin-top: 10px; min-height: 46px; font-size: 15px; }
+.chart-optimal-band { fill: #2e9b5f; opacity: .18; }
+.chart-optimal { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 0; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.chart-optimal strong { color: #145e2d; }
+.chart-optimal.sotto strong, .chart-optimal.sopra strong { color: #8a4b00; }
+.optimal-swatch { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 2px; border-radius: 3px; background: rgba(46,155,95,.35); border: 1px solid #2e9b5f; }
+.weather-history { display: grid; gap: 12px; padding: 10px 0 0; }
+.weather-chart { margin: 0; padding: 12px 12px 10px; border-radius: 16px; background: var(--sand-100); }
+.weather-chart figcaption { align-items: baseline; margin-bottom: 4px; }
+.weather-chart figcaption strong { font-size: 15px; }
+.weather-chart figcaption span { font-size: 13px; font-weight: 700; color: var(--ink); }
+.chart-label { font-size: 10px; }
+.weather-subtitle { margin-bottom: 0; }
+.weather-subtitle-note { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.weather-subtitle-note strong { color: #145e2d; }
+.chart-optimal { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; align-items: center; margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.optimal-cell small { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.optimal-cell strong { display: block; font-size: 15px; font-variant-numeric: tabular-nums; }
+.optimal-badge { grid-column: 1 / -1; justify-self: start; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 800; background: #dcefdc; color: #145e2d; }
+.chart-optimal.sotto .optimal-badge, .chart-optimal.sopra .optimal-badge { background: #ffe2b8; color: #7a3f00; }
+.optimal-swatch { margin-top: 0; width: 10px; height: 10px; }
+.chart-note { margin: 0; padding: 0 4px; }
+.detail-actions { display: flex; gap: 8px; }
+.mini-compass { width: 116px; height: 116px; padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: var(--shadow); color: var(--forest-900); }
+.mini-compass svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.mm-bg { fill: var(--surface); stroke: var(--forest-700); stroke-width: 1.5; }
+.mm-world { transition: transform .15s linear; transform-origin: 0 0; }
+.mm-ring { fill: none; stroke: var(--forest-800); stroke-width: .8; opacity: .55; }
+.mm-ring.faint { opacity: .22; stroke-width: .6; }
+.mm-letter { font-size: 9px; font-weight: 800; fill: var(--ink); }
+.mm-letter.north { fill: #d64933; font-size: 11px; }
+.mm-track { fill: none; stroke: var(--earth); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
+.mm-home-line { stroke: var(--forest-800); stroke-width: 1.2; stroke-dasharray: 2 3; }
+.mm-start { fill: #173f32; stroke: #fff; stroke-width: 1.5; }
+.mm-me { fill: #1e88e5; stroke: #fff; stroke-width: 1.2; stroke-linejoin: round; }
+.mm-heading { fill: #d64933; }
+.mm-scale { font-size: 6.5px; font-weight: 800; fill: var(--muted); }

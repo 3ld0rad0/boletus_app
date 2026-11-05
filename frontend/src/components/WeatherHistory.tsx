@@ -1,6 +1,6 @@
 import { useState, type PointerEvent, type ReactNode } from 'react'
-import { dailyRain, nearestIndex, valueRange } from '../core/chart'
-import type { HourlyPoint } from '../core/types'
+import { dailyRain, nearestIndex, rangeStatus, valueRange, type RangeStatus } from '../core/chart'
+import type { HourlyPoint, SpeciesRules, WeatherSummary } from '../core/types'
 
 const W = 320
 const H = 120
@@ -36,6 +36,7 @@ function Frame({
   x,
   y,
   unit,
+  footer,
 }: {
   title: string
   readout: string
@@ -45,6 +46,7 @@ function Frame({
   x: (t: number) => number
   y: (v: number) => number
   unit: string
+  footer?: ReactNode
 }) {
   return (
     <figure className="weather-chart">
@@ -69,17 +71,68 @@ function Frame({
         ))}
         {children}
       </svg>
+      {footer}
     </figure>
   )
 }
 
-function LineChart({ title, unit, color, points }: { title: string; unit: string; color: string; points: Point[] }) {
+interface Optimal {
+  min: number
+  max: number
+}
+
+const STATUS_LABEL: Record<RangeStatus, string> = {
+  ottimale: '✓ Nella fascia',
+  sotto: '↓ Sotto la fascia',
+  sopra: '↑ Sopra la fascia',
+}
+
+function OptimalNote({ optimal, unit, label, value }: { optimal: Optimal; unit: string; label: string; value: number }) {
+  const status = rangeStatus(value, optimal)
+  return (
+    <div className={`chart-optimal ${status}`}>
+      <div className="optimal-cell">
+        <small>
+          <span className="optimal-swatch" aria-hidden="true" /> Fascia ottimale
+        </small>
+        <strong>
+          {nf.format(optimal.min)}–{nf.format(optimal.max)}
+          {unit}
+        </strong>
+      </div>
+      <div className="optimal-cell">
+        <small>{label}</small>
+        <strong>
+          {nf.format(value)}
+          {unit}
+        </strong>
+      </div>
+      <span className="optimal-badge">{STATUS_LABEL[status]}</span>
+    </div>
+  )
+}
+
+function LineChart({
+  title,
+  unit,
+  color,
+  points,
+  optimal,
+  footer,
+}: {
+  title: string
+  unit: string
+  color: string
+  points: Point[]
+  optimal?: Optimal
+  footer?: ReactNode
+}) {
   const [active, setActive] = useState<number | null>(null)
   if (points.length < 2) return null
 
   const tMin = points[0].t
   const tMax = points[points.length - 1].t
-  const [vMin, vMax] = valueRange(points.map((p) => p.v))
+  const [vMin, vMax] = valueRange([...points.map((p) => p.v), ...(optimal ? [optimal.min, optimal.max] : [])])
   const x = (t: number) => PAD.l + ((t - tMin) / (tMax - tMin)) * PLOT_W
   const y = (v: number) => PAD.t + (1 - (v - vMin) / (vMax - vMin)) * PLOT_H
   const path = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('')
@@ -109,7 +162,17 @@ function LineChart({ title, unit, color, points }: { title: string; unit: string
         x={x}
         y={y}
         unit={unit}
+        footer={footer}
       >
+        {optimal && (
+          <rect
+            x={PAD.l}
+            width={PLOT_W}
+            y={y(optimal.max)}
+            height={Math.max(0, y(optimal.min) - y(optimal.max))}
+            className="chart-optimal-band"
+          />
+        )}
         <path d={path} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" />
         {cur && (
           <>
@@ -122,7 +185,7 @@ function LineChart({ title, unit, color, points }: { title: string; unit: string
   )
 }
 
-function RainChart({ history }: { history: HourlyPoint[] }) {
+function RainChart({ history, footer }: { history: HourlyPoint[]; footer?: ReactNode }) {
   const [active, setActive] = useState<number | null>(null)
   const days = dailyRain(history)
   if (!days.length) return null
@@ -145,6 +208,7 @@ function RainChart({ history }: { history: HourlyPoint[] }) {
       x={x}
       y={y}
       unit=" mm"
+      footer={footer}
     >
       {days.map((d, i) => (
         <rect
@@ -170,15 +234,46 @@ const series = (history: HourlyPoint[], pick: (p: HourlyPoint) => number | null)
     return v === null ? [] : [{ t: p.t, v }]
   })
 
-export function WeatherHistory({ history, elevationM }: { history: HourlyPoint[]; elevationM: number }) {
+export function WeatherHistory({
+  history,
+  elevationM,
+  species,
+  summary,
+}: {
+  history: HourlyPoint[]
+  elevationM: number
+  species: SpeciesRules
+  summary: WeatherSummary
+}) {
+  const { temperature, humidity, rain } = species.weighted
+  const tempOpt = { min: temperature.optMin, max: temperature.optMax }
+  const humOpt = { min: humidity.optMin, max: humidity.optMax }
+  const rainOpt = { min: rain.optMin, max: rain.optMax }
   return (
     <div className="weather-history">
-      <LineChart title="Temperatura" unit="°" color="#bd5c32" points={series(history, (p) => p.tempC)} />
-      <LineChart title="Umidità" unit="%" color="#2b7bb9" points={series(history, (p) => p.humidityPct)} />
-      <RainChart history={history} />
+      <LineChart
+        title="Temperatura"
+        unit="°"
+        color="#bd5c32"
+        points={series(history, (p) => p.tempC)}
+        optimal={tempOpt}
+        footer={<OptimalNote optimal={tempOpt} unit="°" label="Media 5 giorni" value={summary.tempMeanC} />}
+      />
+      <LineChart
+        title="Umidità"
+        unit="%"
+        color="#2b7bb9"
+        points={series(history, (p) => p.humidityPct)}
+        optimal={humOpt}
+        footer={<OptimalNote optimal={humOpt} unit="%" label="Media 10 giorni" value={summary.humidityMeanPct} />}
+      />
+      <RainChart
+        history={history}
+        footer={<OptimalNote optimal={rainOpt} unit=" mm" label="Totale 10 giorni" value={summary.rainSumMm} />}
+      />
       <p className="chart-note">
-        Tocca o passa il cursore sui grafici per i valori. Temperatura del modello meteo a {Math.round(elevationM)} m,
-        non corretta per la quota della cella.
+        Tocca un grafico per vedere i valori. La pioggia si valuta sul totale di 10 giorni. Temperatura del modello a{' '}
+        {Math.round(elevationM)} m, non corretta per la quota della cella.
       </p>
     </div>
   )

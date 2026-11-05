@@ -118,7 +118,7 @@ export default function App() {
       </MapView>
 
       <div className="left-controls">
-        <Compass compass={compass} />
+        <Compass compass={compass} position={position} startPoint={start.startPoint} track={track} />
       </div>
 
       <header className="top-controls">
@@ -255,6 +255,11 @@ export default function App() {
                   track={track}
                   onSave={start.save}
                   onClear={start.clear}
+                  onShowOnMap={() => {
+                    if (!start.startPoint) return
+                    setFocus({ lat: start.startPoint.lat, lon: start.startPoint.lon })
+                    setSheetExpanded(false)
+                  }}
                 />
                 <ProbabilityLegend />
                 {grid.habitatStatus === 'ready' && grid.habitatCells !== null && (
@@ -274,6 +279,7 @@ export default function App() {
       <Disclaimer open={disclaimerOpen} onClose={closeDisclaimer} />
       {weatherMapCenter && (
         <WeatherPanel
+          species={species}
           places={[
             ...(position ? [{ id: 'position', label: 'La tua posizione', point: position }] : []),
             ...(grid.center ? [{ id: 'area', label: 'Area calcolata', point: grid.center }] : []),

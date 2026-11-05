@@ -7,7 +7,8 @@ import { MushroomIcon } from './MushroomIcon'
 interface Props {
   species: SpeciesRules
   info: SpeciesInfo
-  onSearch: () => void
+  /** Se assente il pulsante "Cerca questo fungo" non viene mostrato. */
+  onSearch?: () => void
   onClose: () => void
 }
 
@@ -146,9 +147,11 @@ export function SpeciesInfoSheet({ species, info, onSearch, onClose }: Props) {
           o dall’ispettorato micologico della ASL.
         </p>
 
-        <button type="button" className="button primary" onClick={onSearch}>
-          Cerca questo fungo
-        </button>
+        {onSearch && (
+          <button type="button" className="button primary" onClick={onSearch}>
+            Cerca questo fungo
+          </button>
+        )}
       </div>
     </div>
 

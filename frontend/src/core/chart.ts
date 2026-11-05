@@ -39,3 +39,11 @@ export function nearestIndex(ts: number[], t: number): number {
   for (let i = 1; i < ts.length; i++) if (Math.abs(ts[i] - t) < Math.abs(ts[best] - t)) best = i
   return best
 }
+
+export type RangeStatus = 'ottimale' | 'sotto' | 'sopra'
+
+export function rangeStatus(value: number, range: { min: number; max: number }): RangeStatus {
+  if (value < range.min) return 'sotto'
+  if (value > range.max) return 'sopra'
+  return 'ottimale'
+}

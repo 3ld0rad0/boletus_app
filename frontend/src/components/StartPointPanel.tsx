@@ -14,9 +14,11 @@ interface Props {
   track: LatLon[]
   onSave: (p: LatLon) => void
   onClear: () => void
+  /** Centra la mappa sul punto di partenza. */
+  onShowOnMap: () => void
 }
 
-export function StartPointPanel({ position, startPoint, track, onSave, onClear }: Props) {
+export function StartPointPanel({ position, startPoint, track, onSave, onClear, onShowOnMap }: Props) {
   const [confirm, setConfirm] = useState<'replace' | 'delete' | null>(null)
 
   const save = () => {
@@ -117,6 +119,9 @@ export function StartPointPanel({ position, startPoint, track, onSave, onClear }
           {Math.round(position.accuracyM)} m · salvato alle {savedAt}
         </small>
       </div>
+      <button type="button" className="button primary show-start" onClick={onShowOnMap}>
+        <Icon name="flag" size={20} /> Mostra il punto di partenza sulla mappa
+      </button>
       <div className="point-actions">
         <button type="button" onClick={save}>
           Sostituisci
