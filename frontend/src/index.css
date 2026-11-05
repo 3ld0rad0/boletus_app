@@ -68,8 +68,18 @@
 .search-box button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); margin-right: -8px; }
 .icon-button { width: 48px; height: 48px; flex: 0 0 auto; display: grid; place-items: center; border: 0; border-radius: 14px; background: var(--sand-100); color: var(--forest-900); }
 .icon-button.glass { height: 52px; background: var(--surface); box-shadow: var(--shadow); backdrop-filter: blur(16px); border: 1px solid var(--line); }
-.species-row { display: flex; gap: 8px; overflow-x: auto; padding: 9px 0 5px; scrollbar-width: none; mask-image: linear-gradient(to right,#000 92%,transparent); }
+.species-row { display: flex; gap: 8px; overflow-x: auto; padding: 9px 0 5px; scrollbar-width: none; }
+.species-row.fade-right { mask-image: linear-gradient(to right,#000 92%,transparent); }
+.species-row.fade-left { mask-image: linear-gradient(to left,#000 92%,transparent); }
+.species-row.fade-left.fade-right { mask-image: linear-gradient(to right,transparent,#000 8%,#000 92%,transparent); }
 .species-row::-webkit-scrollbar { display: none; }
+.species-wrap { position: relative; }
+.species-nav { display: none; position: absolute; z-index: 1; top: 50%; margin-top: -15px; width: 30px; height: 30px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); opacity: .7; cursor: pointer; backdrop-filter: blur(12px); box-shadow: 0 2px 8px rgba(16,42,34,.2); transition: opacity .15s; }
+.species-nav:hover { opacity: 1; }
+.species-nav.left { left: 4px; }
+.species-nav.left .icon { transform: rotate(90deg); }
+.species-nav.right { right: 4px; }
+.species-nav.right .icon { transform: rotate(-90deg); }
 .species-row button { min-height: 50px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); white-space: nowrap; text-align: left; box-shadow: 0 4px 14px rgba(16,42,34,.12); backdrop-filter: blur(12px); }
 .species-row button strong, .species-row button small { display: block; }
 .species-row button strong { font-size: 14px; line-height: 1.2; }.species-row button small { font-size: 10px; color: var(--muted); font-style: italic; }
@@ -139,6 +149,8 @@
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms!important; transition-duration: .01ms!important; } }
 @media (min-width: 700px) {
   .top-controls { width: min(420px,calc(100% - 24px)); right: auto; }
+  .species-nav { display: grid; }
+  .species-row.species-row.species-row { mask-image: none; }
   .bottom-sheet { width: 420px; left: 14px; bottom: 14px; border-radius: 24px; padding-bottom: 0; }
   .detail-sheet { width: 420px; left: 14px; bottom: 14px; right: auto; border-radius: 24px; }
   .float-controls { right: 18px; bottom: 54px; }
