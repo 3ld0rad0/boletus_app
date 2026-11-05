@@ -34,9 +34,7 @@ export const storage: KeyValueStore = localStore
 
 export const STORAGE_KEYS = {
   startPoint: 'boletus.startPoint',
-  token: 'boletus.token',
   disclaimerAccepted: 'boletus.disclaimerAccepted',
-  theme: 'boletus.theme',
   recentPlaces: 'boletus.recentPlaces',
   track: 'boletus.track',
 } as const

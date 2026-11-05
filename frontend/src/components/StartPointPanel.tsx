@@ -12,12 +12,11 @@ interface Props {
   startPoint: StartPoint | null
   /** Percorso registrato dalla partenza: se presente la guida di ritorno lo segue. */
   track: LatLon[]
-  syncError: string | null
   onSave: (p: LatLon) => void
   onClear: () => void
 }
 
-export function StartPointPanel({ position, startPoint, track, syncError, onSave, onClear }: Props) {
+export function StartPointPanel({ position, startPoint, track, onSave, onClear }: Props) {
   const [confirm, setConfirm] = useState<'replace' | 'delete' | null>(null)
 
   const save = () => {
@@ -118,7 +117,6 @@ export function StartPointPanel({ position, startPoint, track, syncError, onSave
           {Math.round(position.accuracyM)} m · salvato alle {savedAt}
         </small>
       </div>
-      {syncError && <p className="warning">{syncError}</p>}
       <div className="point-actions">
         <button type="button" onClick={save}>
           Sostituisci

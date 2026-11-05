@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AccountPanel } from './components/AccountPanel'
 import { Compass } from './components/Compass'
 import { ConfirmSheet } from './components/ConfirmSheet'
 import { Disclaimer } from './components/Disclaimer'
@@ -14,15 +13,12 @@ import { WeatherPanel } from './components/WeatherPanel'
 import type { LatLon } from './core/types'
 import { bearingDeg, cardinal, formatDistance, haversineM } from './core/geo'
 import { SPECIES } from './data/species'
-import { useAuth } from './hooks/useAuth'
 import { useCompass } from './hooks/useCompass'
 import { useLocation } from './hooks/useLocation'
 import { useOnline } from './hooks/useOnline'
 import { useProbabilityGrid } from './hooks/useProbabilityGrid'
-import { useSpots } from './hooks/useSpots'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useSunsetWarning } from './hooks/useSunsetWarning'
-import { useTheme } from './hooks/useTheme'
 import { useTrack } from './hooks/useTrack'
 import { DEFAULT_CENTER, GRID_RADIUS_M } from './config'
 import { storage, STORAGE_KEYS } from './services/storage'
@@ -31,16 +27,13 @@ import { prefetchTiles } from './services/tilePrefetch'
 const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
 
 export default function App() {
-  const auth = useAuth()
-  const spots = useSpots(auth.user)
-  const start = useStartPoint(auth.user, spots.refresh)
+  const start = useStartPoint()
   // Con un punto di partenza salvato il percorso si registra anche a schermo spento (app nativa).
   const { position, error: locationError } = useLocation(start.startPoint !== null)
   const track = useTrack(position, start.startPoint)
   const sunset = useSunsetWarning(start.startPoint)
   const online = useOnline()
   const compass = useCompass()
-  const { theme, toggle: toggleTheme } = useTheme()
 
   const [speciesId, setSpeciesId] = useState(SPECIES[0].id)
   const species = useMemo(() => SPECIES.find((s) => s.id === speciesId) ?? SPECIES[0], [speciesId])
@@ -52,7 +45,6 @@ export default function App() {
   const onCenterChange = useCallback((c: LatLon) => (mapCenter.current = c), [])
   const [focus, setFocus] = useState<LatLon | null>(null)
 
-  const [accountOpen, setAccountOpen] = useState(false)
   const [weatherMapCenter, setWeatherMapCenter] = useState<LatLon | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
   const [habitatBannerHidden, setHabitatBannerHidden] = useState(false)
@@ -139,9 +131,6 @@ export default function App() {
             aria-label="Meteo"
           >
             <Icon name="cloud" />
-          </button>
-          <button type="button" className="icon-button glass" onClick={() => setAccountOpen(true)} aria-label="Account">
-            <Icon name="user" />
           </button>
           <button
             type="button"
@@ -256,7 +245,6 @@ export default function App() {
                   position={position}
                   startPoint={start.startPoint}
                   track={track}
-                  syncError={start.syncError}
                   onSave={start.save}
                   onClear={start.clear}
                 />
@@ -273,22 +261,6 @@ export default function App() {
             )}
           </div>
         </section>
-      )}
-
-      {accountOpen && (
-        <AccountPanel
-          auth={auth}
-          spots={spots.spots}
-          spotsError={spots.error}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onClose={() => setAccountOpen(false)}
-          onUseSpot={(p) => {
-            start.restore(p)
-            setAccountOpen(false)
-          }}
-          onDeleteSpot={spots.remove}
-        />
       )}
 
       <Disclaimer open={disclaimerOpen} onClose={closeDisclaimer} />
