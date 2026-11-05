@@ -10,6 +10,7 @@ import { ProbabilityLegend } from './components/ProbabilityLegend'
 import { ScoreDetails } from './components/ScoreDetails'
 import { SpeciesSelector } from './components/SpeciesSelector'
 import { StartPointPanel } from './components/StartPointPanel'
+import { WeatherPanel } from './components/WeatherPanel'
 import type { LatLon } from './core/types'
 import { bearingDeg, cardinal, formatDistance, haversineM } from './core/geo'
 import { SPECIES } from './data/species'
@@ -52,6 +53,7 @@ export default function App() {
   const [focus, setFocus] = useState<LatLon | null>(null)
 
   const [accountOpen, setAccountOpen] = useState(false)
+  const [weatherMapCenter, setWeatherMapCenter] = useState<LatLon | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
   const [habitatBannerHidden, setHabitatBannerHidden] = useState(false)
   const [replaceStartOpen, setReplaceStartOpen] = useState(false)
@@ -130,6 +132,14 @@ export default function App() {
       <header className="top-controls">
         <div className="top-line">
           <PlaceSearch onSelect={(p) => setFocus({ lat: p.lat, lon: p.lon })} />
+          <button
+            type="button"
+            className="icon-button glass"
+            onClick={() => setWeatherMapCenter(mapCenter.current)}
+            aria-label="Meteo"
+          >
+            <Icon name="cloud" />
+          </button>
           <button type="button" className="icon-button glass" onClick={() => setAccountOpen(true)} aria-label="Account">
             <Icon name="user" />
           </button>
@@ -282,6 +292,16 @@ export default function App() {
       )}
 
       <Disclaimer open={disclaimerOpen} onClose={closeDisclaimer} />
+      {weatherMapCenter && (
+        <WeatherPanel
+          places={[
+            ...(position ? [{ id: 'position', label: 'La tua posizione', point: position }] : []),
+            ...(grid.center ? [{ id: 'area', label: 'Area calcolata', point: grid.center }] : []),
+            ...(!position && !grid.center ? [{ id: 'map', label: 'Centro mappa', point: weatherMapCenter }] : []),
+          ]}
+          onClose={() => setWeatherMapCenter(null)}
+        />
+      )}
       {replaceStartOpen && position && (
         <ConfirmSheet
           title="Sostituire il punto?"

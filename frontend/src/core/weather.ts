@@ -1,6 +1,6 @@
 import { fetchWithRetry } from './http'
 import { createCache } from './memoryCache'
-import type { LatLon, WeatherSummary } from './types'
+import type { CurrentWeather, HourlyPoint, LatLon, WeatherSummary } from './types'
 
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 const CACHE_TTL_MS = 60 * 60 * 1000
@@ -16,6 +16,14 @@ export interface HourlyResponse {
     temperature_2m: (number | null)[]
     relative_humidity_2m: (number | null)[]
     precipitation: (number | null)[]
+  }
+  current?: {
+    time: number
+    temperature_2m: number | null
+    relative_humidity_2m: number | null
+    precipitation: number | null
+    wind_speed_10m: number | null
+    weather_code: number | null
   }
 }
 
@@ -34,6 +42,29 @@ function valuesInWindow(times: number[], values: (number | null)[], nowSec: numb
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 
+function currentFrom(c: HourlyResponse['current']): CurrentWeather | undefined {
+  if (!c || c.temperature_2m === null || c.weather_code === null) return undefined
+  return {
+    t: c.time,
+    tempC: c.temperature_2m,
+    humidityPct: c.relative_humidity_2m ?? 0,
+    precipitationMm: c.precipitation ?? 0,
+    windKmh: c.wind_speed_10m ?? 0,
+    weatherCode: c.weather_code,
+  }
+}
+
+function historyInWindow(h: HourlyResponse['hourly'], nowSec: number, days: number): HourlyPoint[] {
+  const from = nowSec - days * 86_400
+  const out: HourlyPoint[] = []
+  h.time.forEach((t, i) => {
+    if (t > from && t <= nowSec) {
+      out.push({ t, tempC: h.temperature_2m[i], humidityPct: h.relative_humidity_2m[i], rainMm: h.precipitation[i] })
+    }
+  })
+  return out
+}
+
 /** Aggrega i dati orari passati, escludendo le ore future di previsione. */
 export function aggregateHourly(data: HourlyResponse, nowMs: number): WeatherSummary {
   const nowSec = Math.floor(nowMs / 1000)
@@ -47,6 +78,8 @@ export function aggregateHourly(data: HourlyResponse, nowMs: number): WeatherSum
     tempMeanC: mean(temps),
     rainSumMm: sum(rains),
     humidityMeanPct: mean(hums),
+    history: historyInWindow(h, nowSec, Math.max(RAIN_WINDOW_DAYS, HUMIDITY_WINDOW_DAYS, TEMP_WINDOW_DAYS)),
+    current: currentFrom(data.current),
   }
 }
 
@@ -71,6 +104,7 @@ export function fetchWeatherSummary(point: LatLon, fetchFn: FetchFn = fetch): Pr
       latitude,
       longitude,
       hourly: 'temperature_2m,relative_humidity_2m,precipitation',
+      current: 'temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code',
       past_days: String(RAIN_WINDOW_DAYS),
       forecast_days: '1',
       timeformat: 'unixtime',

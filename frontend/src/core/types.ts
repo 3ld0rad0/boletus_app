@@ -84,12 +84,34 @@ export interface GridCell {
   polygon: LatLon[]
 }
 
+export interface HourlyPoint {
+  /** Istante in secondi Unix. */
+  t: number
+  tempC: number | null
+  humidityPct: number | null
+  rainMm: number | null
+}
+
+export interface CurrentWeather {
+  /** Istante della misura, secondi Unix. */
+  t: number
+  tempC: number
+  humidityPct: number
+  precipitationMm: number
+  windKmh: number
+  /** Codice meteo WMO. */
+  weatherCode: number
+}
+
 export interface WeatherSummary {
   /** Quota (m) a cui si riferisce la temperatura del modello meteo. */
   referenceElevationM: number
   tempMeanC: number
   rainSumMm: number
   humidityMeanPct: number
+  /** Dati orari passati (ultimi giorni), per i grafici. */
+  history?: HourlyPoint[]
+  current?: CurrentWeather
 }
 
 export interface ScoredCell {

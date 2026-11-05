@@ -14,6 +14,7 @@ export type HabitatStatus = 'loading' | 'ready' | 'failed'
 const URBAN_MARGIN_DEG = SETTLEMENT_FAR_M / 111_000 * 1.5
 
 interface GridData {
+  center: LatLon
   cells: GridCell[]
   elevations: number[]
   weather: WeatherSummary
@@ -56,6 +57,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
       if (id !== requestId.current) return
       const now = new Date()
       setData({
+        center,
         cells,
         elevations,
         weather,
@@ -123,6 +125,7 @@ export function useProbabilityGrid(species: SpeciesRules) {
 
   return {
     scored,
+    center: data?.center ?? null,
     weather: data?.weather ?? null,
     habitatStatus: data?.habitatStatus ?? null,
     habitatError: data?.habitatError ?? null,

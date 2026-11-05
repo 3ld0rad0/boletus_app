@@ -17,6 +17,7 @@ export type IconName =
   | 'check'
   | 'warning'
   | 'arrow'
+  | 'cloud'
 
 const PATHS: Record<IconName, ReactNode> = {
   search: (
@@ -89,6 +90,7 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 9v4M12 17h.01" />
     </>
   ),
+  cloud: <path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5H7Z" />,
   arrow: (
     <>
       <path d="M12 21V4" />
