@@ -10,7 +10,7 @@ interface Props {
   species: SpeciesRules[]
   value: string
   onChange: (id: string) => void
-  /** Sceglie il fungo e avvia il calcolo dell'area. */
+  /** Sceglie il fungo e avvia il calcolo dell'area centrata sulla mappa. */
   onSearch: (id: string) => void
 }
 

@@ -31,7 +31,7 @@ interface GridData {
  * localmente (senza nuove richieste) quando cambia la specie. La vegetazione
  * arriva dopo e aggiorna il punteggio senza bloccare la prima visualizzazione.
  */
-export function useProbabilityGrid(species: SpeciesRules) {
+export function useProbabilityGrid(species: SpeciesRules, allSpecies: SpeciesRules[] = []) {
   const [data, setData] = useState<GridData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -123,8 +123,27 @@ export function useProbabilityGrid(species: SpeciesRules) {
     [data, species],
   )
 
+  // Punteggio della cella migliore dell'area per ogni specie.
+  const speciesScores = useMemo(() => {
+    if (!data) return []
+    return allSpecies.map((s) => {
+      const cells = scoreGrid(
+        data.cells,
+        data.elevations,
+        data.weather,
+        s,
+        data.month,
+        data.day,
+        data.habitats ?? undefined,
+        data.urbanDistances ?? undefined,
+      )
+      return { species: s, score: Math.max(0, ...cells.map((c) => c.result.score)) }
+    })
+  }, [data, allSpecies])
+
   return {
     scored,
+    speciesScores,
     center: data?.center ?? null,
     weather: data?.weather ?? null,
     habitatStatus: data?.habitatStatus ?? null,

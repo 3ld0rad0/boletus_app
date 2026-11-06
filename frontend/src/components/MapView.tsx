@@ -23,6 +23,8 @@ interface Props {
   track: LatLon[]
   /** Cambiando riferimento la mappa si sposta qui (es. località cercata). */
   focus: LatLon | null
+  /** Ogni incremento reinquadra la griglia corrente. */
+  fitGridRequest: number
   cells: ScoredCell[]
   selectedCellId: string | null
   onSelectCell: (id: string | null) => void
@@ -64,6 +66,7 @@ export function MapView({
   startPoint,
   track,
   focus,
+  fitGridRequest,
   cells,
   selectedCellId,
   onSelectCell,
@@ -155,6 +158,18 @@ export function MapView({
       map.fitBounds(bounds, { padding: [40, 40], duration: 0.8 })
     }
   }, [cells])
+
+  const cellsRef = useRef(cells)
+  cellsRef.current = cells
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || fitGridRequest === 0 || cellsRef.current.length === 0) return
+    const bounds = L.latLngBounds(
+      cellsRef.current.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])),
+    )
+    // Margini extra per non finire sotto la barra in alto e il pannello in basso.
+    map.fitBounds(bounds, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230], duration: 0.8 })
+  }, [fitGridRequest])
 
   useEffect(() => {
     selectedRef.current = selectedCellId

@@ -7,6 +7,7 @@ import { MapView } from './components/MapView'
 import { PlaceSearch } from './components/PlaceSearch'
 import { ProbabilityLegend } from './components/ProbabilityLegend'
 import { ScoreDetails } from './components/ScoreDetails'
+import { SpeciesProbabilityList } from './components/SpeciesProbabilityList'
 import { SpeciesSelector } from './components/SpeciesSelector'
 import { StartPointPanel } from './components/StartPointPanel'
 import { WeatherPanel } from './components/WeatherPanel'
@@ -37,13 +38,14 @@ export default function App() {
 
   const [speciesId, setSpeciesId] = useState(SPECIES[0].id)
   const species = useMemo(() => SPECIES.find((s) => s.id === speciesId) ?? SPECIES[0], [speciesId])
-  const grid = useProbabilityGrid(species)
+  const grid = useProbabilityGrid(species, SPECIES)
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
   const selectedCell = grid.scored.find((c) => c.cell.id === selectedCellId) ?? null
 
   const mapCenter = useRef<LatLon>(DEFAULT_CENTER)
   const onCenterChange = useCallback((c: LatLon) => (mapCenter.current = c), [])
   const [focus, setFocus] = useState<LatLon | null>(null)
+  const [fitGridRequest, setFitGridRequest] = useState(0)
 
   const [weatherMapCenter, setWeatherMapCenter] = useState<LatLon | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
@@ -95,6 +97,7 @@ export default function App() {
         startPoint={start.startPoint}
         track={track}
         focus={focus}
+        fitGridRequest={fitGridRequest}
         cells={grid.scored}
         selectedCellId={selectedCellId}
         onSelectCell={setSelectedCellId}
@@ -147,7 +150,7 @@ export default function App() {
           onChange={setSpeciesId}
           onSearch={(id) => {
             setSpeciesId(id)
-            compute(position ?? mapCenter.current)
+            compute(mapCenter.current)
           }}
         />
       </header>
@@ -234,18 +237,22 @@ export default function App() {
             )}
             {!grid.loading && (
               <>
-                <button
-                  type="button"
-                  className="button primary"
-                  disabled={!position}
-                  onClick={() => position && compute(position)}
-                >
-                  Calcola intorno a me
-                </button>
-                <button type="button" className="button secondary" onClick={() => compute(mapCenter.current)}>
+                <button type="button" className="button primary" onClick={() => compute(mapCenter.current)}>
                   Calcola sul centro della mappa
                 </button>
               </>
+            )}
+            {hasGrid && (
+              <SpeciesProbabilityList
+                items={grid.speciesScores}
+                selectedId={speciesId}
+                onSelect={(id) => {
+                  setSpeciesId(id)
+                  setSelectedCellId(null)
+                  setSheetExpanded(false)
+                  setFitGridRequest((n) => n + 1)
+                }}
+              />
             )}
             {sheetExpanded && (
               <>
