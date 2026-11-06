@@ -19,18 +19,30 @@ function recordTiming(ms: number) {
 
 /** Layer di tasselli che usa la cache del dispositivo, così la mappa si vede anche senza rete. */
 export class CachedTileLayer extends L.TileLayer {
+  private readonly downloads = new WeakMap<HTMLElement, AbortController>()
+
+  constructor(urlTemplate: string, options?: L.TileLayerOptions) {
+    super(urlTemplate, options)
+    // Un tassello uscito dalla vista non deve più occupare la connessione.
+    this.on('tileunload', (e) => this.downloads.get((e as L.TileEvent).tile)?.abort())
+  }
+
   createTile(coords: L.Coords, done: L.DoneCallback): HTMLElement {
     const tile = document.createElement('img')
     tile.alt = ''
+    tile.decoding = 'async'
     tile.setAttribute('role', 'presentation')
     const url = this.getTileUrl(coords)
     const started = performance.now()
+    const ctrl = new AbortController()
+    this.downloads.set(tile, ctrl)
 
-    // Se il server non ammette CORS (o la cache non c'è) si ripiega sul caricamento normale dell'immagine.
-    void fetchMapTile(url)
+    // Se il server non ammette CORS, la cache non c'è o il download scade si ripiega sull'immagine normale.
+    void fetchMapTile(url, ctrl.signal)
       .then((blob) => URL.createObjectURL(blob))
       .catch(() => url)
       .then((src) => {
+        if (ctrl.signal.aborted) return void (src !== url && URL.revokeObjectURL(src))
         const release = () => src !== url && URL.revokeObjectURL(src)
         tile.onload = () => {
           release()

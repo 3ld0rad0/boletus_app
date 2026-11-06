@@ -13,8 +13,33 @@ import {
   TILE_URL,
   USER_ZOOM,
 } from '../config'
+import { isConstrainedConnection } from '../services/network'
+import { storage, STORAGE_KEYS } from '../services/storage'
+import { markMapIdle } from '../services/tilePrefetch'
 import { CachedTileLayer } from './CachedTileLayer'
 import { Icon } from './Icon'
+
+interface SavedView extends LatLon {
+  zoom: number
+}
+
+function validView(v: SavedView | null): v is SavedView {
+  return !!v && [v.lat, v.lon, v.zoom].every(Number.isFinite) && Math.abs(v.lat) <= 90 && Math.abs(v.lon) <= 180
+}
+
+/** Ultima vista, altrimenti il punto di partenza: si apre subito dove serve, senza caricare l'Italia intera. */
+function initialView(startPoint: LatLon | null): { center: L.LatLngTuple; zoom: number } {
+  const saved = storage.get<SavedView>(STORAGE_KEYS.lastView)
+  if (validView(saved)) return { center: [saved.lat, saved.lon], zoom: saved.zoom }
+  if (startPoint) return { center: [startPoint.lat, startPoint.lon], zoom: USER_ZOOM }
+  return { center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lon], zoom: DEFAULT_ZOOM }
+}
+
+/** Il volo attraversa zoom intermedi e carica tasselli inutili: solo per spostamenti brevi e con rete buona. */
+function goTo(map: L.Map, target: L.LatLngTuple, zoom: number) {
+  if (!isConstrainedConnection() && map.getBounds().contains(target)) map.flyTo(target, zoom)
+  else map.setView(target, zoom, { animate: false })
+}
 
 interface Props {
   position: Position | null
@@ -86,6 +111,7 @@ export function MapView({
   const selectedRef = useRef<string | null>(null)
   const lastFitKey = useRef<string | null>(null)
   const callbacks = useRef({ onSelectCell, onCenterChange })
+  const initialStart = useRef(startPoint)
 
   useEffect(() => {
     callbacks.current = { onSelectCell, onCenterChange }
@@ -93,18 +119,25 @@ export function MapView({
 
   useEffect(() => {
     if (!containerRef.current) return
+    const view = initialView(initialStart.current)
     const map = L.map(containerRef.current, {
-      center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lon],
-      zoom: DEFAULT_ZOOM,
+      center: view.center,
+      zoom: view.zoom,
       maxZoom: 19,
       zoomControl: false,
     })
+    // Niente caricamenti durante i gesti e buffer corto: su rete lenta ogni tassello in più ritarda quelli visibili.
     new CachedTileLayer(TILE_URL, {
       attribution: TILE_ATTRIBUTION,
       subdomains: 'abc',
       maxNativeZoom: TILE_MAX_ZOOM,
       maxZoom: 19,
-    }).addTo(map)
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 1,
+    })
+      .on('load', markMapIdle)
+      .addTo(map)
     L.control.zoom({ position: 'topright' }).addTo(map)
     L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map)
     gridRef.current = L.layerGroup().addTo(map)
@@ -113,7 +146,10 @@ export function MapView({
     map.on('moveend', () => {
       const c = map.getCenter()
       callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
+      storage.set<SavedView>(STORAGE_KEYS.lastView, { lat: c.lat, lon: c.lng, zoom: map.getZoom() })
     })
+    const c = map.getCenter()
+    callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
 
     mapRef.current = map
     const rects = rectsRef.current
@@ -199,7 +235,7 @@ export function MapView({
     }
     if (!centeredOnUser.current) {
       centeredOnUser.current = true
-      map.flyTo(latLng, USER_ZOOM)
+      goTo(map, latLng, USER_ZOOM)
     }
   }, [position])
 
@@ -249,12 +285,12 @@ export function MapView({
   }, [track])
 
   useEffect(() => {
-    if (focus) mapRef.current?.flyTo([focus.lat, focus.lon], PLACE_ZOOM)
+    if (focus && mapRef.current) goTo(mapRef.current, [focus.lat, focus.lon], PLACE_ZOOM)
   }, [focus])
 
   const recenter = () => {
     const map = mapRef.current
-    if (position && map) map.flyTo([position.lat, position.lon], Math.max(map.getZoom(), USER_ZOOM))
+    if (position && map) goTo(map, [position.lat, position.lon], Math.max(map.getZoom(), USER_ZOOM))
   }
 
   return (
