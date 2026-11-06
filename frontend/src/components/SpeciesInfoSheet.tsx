@@ -58,34 +58,32 @@ export function SpeciesInfoSheet({ species, info, onSearch, onClose }: Props) {
         aria-label={`Scheda: ${species.name}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="species-info-bar">
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi scheda">
-            <Icon name="close" />
-          </button>
-        </div>
-
-        <header className="species-info-head">
+        <header className="species-hero">
           {info.photo ? (
-            <figure className="species-photo-wrap">
-              <img src={info.photo.src} alt={species.name} className="species-photo" />
-              <figcaption>
-                Foto: {info.photo.author} ·{' '}
-                <a href={info.photo.url} target="_blank" rel="noreferrer">
-                  {info.photo.license}
-                </a>
-              </figcaption>
-            </figure>
+            <img src={info.photo.src} alt={species.name} className="species-hero-img" />
           ) : (
             <div className="species-art">
               <MushroomIcon look={info.look} size={96} />
             </div>
           )}
-          <h2>{species.name}</h2>
-          <p className="latin">{species.latinName}</p>
-          <span className={`edibility ${info.edibility.includes('SOLO') ? 'careful' : ''}`}>{info.edibility}</span>
+          <button type="button" className="icon-button species-hero-close" onClick={onClose} aria-label="Chiudi scheda">
+            <Icon name="close" />
+          </button>
+          <div className="species-hero-body">
+            <h2>{species.name}</h2>
+            <p className="latin">{species.latinName}</p>
+            <span className={`edibility ${info.edibility.includes('SOLO') ? 'careful' : ''}`}>{info.edibility}</span>
+            <p className="species-lead">{info.description}</p>
+            {info.photo && (
+              <small className="hero-credit">
+                Foto: {info.photo.author} ·{' '}
+                <a href={info.photo.url} target="_blank" rel="noreferrer">
+                  {info.photo.license}
+                </a>
+              </small>
+            )}
+          </div>
         </header>
-
-        <p className="species-lead">{info.description}</p>
 
         <section>
           <h3>Come riconoscerlo</h3>
