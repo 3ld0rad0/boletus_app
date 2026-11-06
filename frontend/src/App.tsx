@@ -49,6 +49,19 @@ export default function App() {
 
   const [weatherMapCenter, setWeatherMapCenter] = useState<LatLon | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
+  const sheetRef = useRef<HTMLElement>(null)
+  const hasSheet = selectedCell === null
+  // I controlli sulla mappa seguono l'altezza reale del pannello chiuso.
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el || sheetExpanded) return
+    const root = document.documentElement
+    const update = () => root.style.setProperty('--sheet-offset', `${el.offsetHeight}px`)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [sheetExpanded, hasSheet])
   const [habitatBannerHidden, setHabitatBannerHidden] = useState(false)
   const [replaceStartOpen, setReplaceStartOpen] = useState(false)
   const [disclaimerOpen, setDisclaimerOpen] = useState(() => !storage.get<boolean>(STORAGE_KEYS.disclaimerAccepted))
@@ -181,7 +194,7 @@ export default function App() {
       {selectedCell ? (
         <ScoreDetails cell={selectedCell} species={species} onClose={() => setSelectedCellId(null)} />
       ) : (
-        <section className={`bottom-sheet ${sheetExpanded ? 'expanded' : 'partial'}`}>
+        <section ref={sheetRef} className={`bottom-sheet ${sheetExpanded ? 'expanded' : 'partial'}`}>
           <button
             type="button"
             className="sheet-grab-area"
@@ -228,22 +241,31 @@ export default function App() {
               sheetExpanded &&
               !hasGrid && (
                 <div className="empty-hint">
-                  <span>🍄</span>
                   <p>
                     <strong>Dove cerchiamo?</strong> Calcola la probabilità nelle vicinanze.
                   </p>
                 </div>
               )
             )}
-            {!grid.loading && (
-              <>
-                <button type="button" className="button primary" onClick={() => compute(mapCenter.current)}>
-                  Calcola sul centro della mappa
+            {!grid.loading && !hasGrid && (
+              <button type="button" className="button primary" onClick={() => compute(mapCenter.current)}>
+                Calcola sul centro della mappa
+              </button>
+            )}
+            {!grid.loading && hasGrid && (
+              <div className="area-row">
+                <span>
+                  <strong>Area calcolata</strong>
+                  <small>Raggio {radiusLabel}</small>
+                </span>
+                <button type="button" onClick={() => compute(mapCenter.current)}>
+                  Ricalcola qui
                 </button>
-              </>
+              </div>
             )}
             {hasGrid && (
               <SpeciesProbabilityList
+                compact={!sheetExpanded}
                 items={grid.speciesScores}
                 selectedId={speciesId}
                 onSelect={(id) => {

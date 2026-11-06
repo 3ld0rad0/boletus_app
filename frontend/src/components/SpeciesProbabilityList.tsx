@@ -11,10 +11,32 @@ interface Props {
   items: SpeciesScore[]
   selectedId: string
   onSelect: (id: string) => void
+  /** Striscia orizzontale di chip invece dell'elenco con le barre. */
+  compact?: boolean
 }
 
-export function SpeciesProbabilityList({ items, selectedId, onSelect }: Props) {
+export function SpeciesProbabilityList({ items, selectedId, onSelect, compact }: Props) {
   const sorted = [...items].sort((a, b) => b.score - a.score)
+  if (compact) {
+    return (
+      <div className="species-chips">
+        {sorted.map(({ species, score }) => (
+          <button
+            key={species.id}
+            type="button"
+            className={species.id === selectedId ? 'active' : ''}
+            onClick={() => onSelect(species.id)}
+            aria-pressed={species.id === selectedId}
+            aria-label={`${species.name}: ${score}, ${BAND_LABELS[bandFor(score)]}`}
+          >
+            <i style={{ background: BAND_COLORS[bandFor(score)] }} />
+            {species.name}
+            <b>{score}</b>
+          </button>
+        ))}
+      </div>
+    )
+  }
   return (
     <div className="species-prob">
       <strong>Probabilità per fungo</strong>
