@@ -195,54 +195,6 @@ export const SPECIES_INFO: Record<string, SpeciesInfo> = {
       },
     ],
   },
-  prugnolo: {
-    look: { cap: '#efe3c8', stem: '#f7f0df', shape: 'dome' },
-    photo: { src: '/species/prugnolo.jpg', author: 'Lucian Clanet', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Calocybe_gambosa_collection.jpg' },
-    edibility: 'Ottimo commestibile',
-    description: 'Il fungo di primavera: bianco-crema, carnoso, con profumo di farina fresca.',
-    features: [
-      { label: 'Cappello', value: 'Convesso, 5-12 cm, bianco-crema, margine arrotolato.' },
-      { label: 'Lamelle', value: 'Fitte, strette, bianche o crema.' },
-      { label: 'Gambo', value: 'Corto e robusto, bianco.' },
-      { label: 'Carne', value: 'Compatta e bianca; forte odore di farina fresca.' },
-    ],
-    habitat: 'Prati, pascoli e margini dei boschi, spesso in cerchi. Da aprile a giugno.',
-    lookalikes: [
-      {
-        name: 'Entoloma livido',
-        latinName: 'Entoloma sinuatum',
-        toxicity: 'velenoso',
-        photo: { src: '/species/lookalikes/entoloma-sinuatum.jpg', author: 'naturgucker.de', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Entoloma_sinuatum_11.jpg' },
-        differences: [
-          'Lamelle prima giallastre poi rosa sporco con la maturità.',
-          'Odore farinoso ma sgradevole e rancido.',
-          'Cresce di solito più tardi, in boschi di latifoglie.',
-        ],
-      },
-      {
-        name: 'Clitocibe rivoloso',
-        latinName: 'Clitocybe rivulosa',
-        toxicity: 'velenoso',
-        photo: { src: '/species/lookalikes/clitocybe-rivulosa.jpg', author: 'Георгий Виноградов (Georgy Vinogradov)', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Clitocybe_rivulosa_236994862.jpg' },
-        differences: [
-          'Piccolo: cappello 2-5 cm, biancastro con zone concentriche.',
-          'Lamelle che scendono sul gambo.',
-          'Cresce nei prati in autunno; contiene muscarina.',
-        ],
-      },
-      {
-        name: 'Inocibe rossastra',
-        latinName: 'Inosperma erubescens',
-        toxicity: 'velenoso',
-        photo: { src: '/species/lookalikes/inosperma-erubescens.jpg', author: 'Jose Castro', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Inosperma_erubescens_702228227.jpg' },
-        differences: [
-          'La carne e il cappello arrossano con l’età o al taglio.',
-          'Cappello fibrilloso che si spacca al margine.',
-          'Odore fruttato-spermatico; lamelle brune da adulto.',
-        ],
-      },
-    ],
-  },
   rosito: {
     look: { cap: '#d97a2b', stem: '#e59a4d', shape: 'dome' },
     photo: { src: '/species/rosito.jpg', author: 'Lucian Clanet', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Lactarius_deliciosus_1.jpg' },
@@ -279,41 +231,19 @@ export const SPECIES_INFO: Record<string, SpeciesInfo> = {
       },
     ],
   },
-  spugnola: {
-    look: { cap: '#9a7a4a', stem: '#efe6d2', shape: 'morel' },
-    photo: { src: '/species/spugnola.jpg', author: 'Tom Zucker-Scharff', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Morchella_esculenta_36771717.jpg' },
-    edibility: 'Ottimo commestibile SOLO ben cotto (crudo è tossico)',
-    description: 'Cappello a nido d’ape, interamente cavo, tra i primi funghi della primavera.',
+  pinarolo: {
+    look: { cap: '#6b3f1f', stem: '#efe6cf', shape: 'dome', ring: true },
+    photo: { src: '/species/pinarolo.jpg', author: 'Dave W (Mushroom Observer)', license: 'CC BY-SA 3.0', url: 'https://commons.wikimedia.org/wiki/File:2012-10-09_Suillus_luteus_(L.)_Roussel_270282.jpg' },
+    edibility: 'Buon commestibile (da giovane, senza cuticola e senza gambo fibroso)',
+    description: 'Boleto dei pini con cappello viscido bruno lucente, pori gialli e anello sul gambo. Noto anche come pinarello, vavuso o bavusa.',
     features: [
-      { label: 'Cappello', value: 'Conico-ovale, 3-8 cm, fatto di alveoli come un favo, color camoscio-bruno.' },
-      { label: 'Gambo', value: 'Biancastro, fragile, cavo.' },
-      { label: 'Interno', value: 'Tagliando a metà, cappello e gambo sono un’unica cavità vuota.' },
-      { label: 'Attacco', value: 'Il cappello è unito al gambo alla base.' },
+      { label: 'Cappello', value: 'Fino a 12 cm, prima emisferico poi disteso; cuticola viscida, lucente, bruno-rossastra e facile da staccare.' },
+      { label: 'Sotto il cappello', value: 'Pori piccoli e tondi, gialli, che non cambiano colore al tatto; da giovane coperti da un velo bianco.' },
+      { label: 'Gambo e anello', value: 'Tozzo, biancastro, con punteggiatura giallo-bruna sotto l’anello ampio e membranoso.' },
+      { label: 'Carne', value: 'Bianco-giallastra, molle, immutabile al taglio; odore fruttato e sapore dolce.' },
     ],
-    habitat: 'Margini di boschi, frutteti, zone umide e terreni smossi. Da marzo a maggio.',
-    lookalikes: [
-      {
-        name: 'Falsa spugnola',
-        latinName: 'Gyromitra esculenta',
-        toxicity: 'mortale',
-        photo: { src: '/species/lookalikes/gyromitra-esculenta.jpg', author: 'Kruczy89', license: 'CC0', url: 'https://commons.wikimedia.org/wiki/File:Gyromitra_esculenta01.jpg' },
-        differences: [
-          'Cappello bruno-rossastro con circonvoluzioni a cervello, non a nido d’ape.',
-          'Tagliato a metà ha camere e fibre cotonose, non una sola cavità vuota.',
-          'Contiene giromitrina: può essere mortale anche cotta.',
-        ],
-      },
-      {
-        name: 'Verpa',
-        latinName: 'Verpa bohemica',
-        toxicity: 'tossico',
-        photo: { src: '/species/lookalikes/verpa-bohemica.jpg', author: 'Oleg Kosterin', license: 'CC BY 4.0', url: 'https://commons.wikimedia.org/wiki/File:Verpa_bohemica_117436540.jpg' },
-        differences: [
-          'Cappello a campana con pieghe longitudinali, attaccato al gambo solo in cima come una cuffia.',
-          'Interno con filamenti cotonosi.',
-        ],
-      },
-    ],
+    habitat: 'Boschi di conifere, soprattutto di pino, in gruppi. Dall’estate all’autunno.',
+    lookalikes: [],
   },
   chiodino: {
     look: { cap: '#c79a4a', stem: '#e8d6a7', shape: 'dome', ring: true },
