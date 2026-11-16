@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BestAreaCard } from './components/BestAreaCard'
 import { Compass } from './components/Compass'
 import { ConfirmSheet } from './components/ConfirmSheet'
 import { Disclaimer } from './components/Disclaimer'
@@ -9,14 +10,17 @@ import { ProbabilityLegend } from './components/ProbabilityLegend'
 import { ScoreDetails } from './components/ScoreDetails'
 import { SpeciesProbabilityList } from './components/SpeciesProbabilityList'
 import { SpeciesSelector } from './components/SpeciesSelector'
+import { SplashScreen } from './components/SplashScreen'
 import { StartPointPanel } from './components/StartPointPanel'
 import { WeatherPanel } from './components/WeatherPanel'
+import type { ZoneReport } from './core/areaScan'
 import type { LatLon } from './core/types'
 import { bearingDeg, cardinal, formatDistance, haversineM } from './core/geo'
 import { SPECIES } from './data/species'
 import { useCompass } from './hooks/useCompass'
 import { useLocation } from './hooks/useLocation'
 import { useOnline } from './hooks/useOnline'
+import { useBestArea } from './hooks/useBestArea'
 import { useProbabilityGrid } from './hooks/useProbabilityGrid'
 import { useStartPoint } from './hooks/useStartPoint'
 import { useSunsetWarning } from './hooks/useSunsetWarning'
@@ -27,6 +31,11 @@ import type { Position } from './services/location'
 import { prefetchTiles } from './services/tilePrefetch'
 
 const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
+const SPLASH_DONE_MS = 700
+const SPLASH_POSITION_WAIT_MS = 8000
+// La schermata iniziale aspetta un GPS così preciso, ma al massimo per questo tempo.
+const GPS_GOOD_M = 100
+const GPS_WAIT_MS = 15_000
 
 export default function App() {
   const start = useStartPoint()
@@ -42,6 +51,45 @@ export default function App() {
   const sunset = useSunsetWarning(start.startPoint)
   const online = useOnline()
   const compass = useCompass()
+
+  // Analisi della zona migliore attorno al dispositivo, o al punto di partenza finché manca il GPS.
+  const startLat = start.startPoint?.lat
+  const startLon = start.startPoint?.lon
+  const areaOrigin = useMemo<LatLon | null>(() => {
+    if (position) return { lat: position.lat, lon: position.lon }
+    return startLat !== undefined && startLon !== undefined ? { lat: startLat, lon: startLon } : null
+  }, [position, startLat, startLon])
+  const area = useBestArea(areaOrigin, SPECIES, online)
+  const [areaOpen, setAreaOpen] = useState(false)
+  // Schermata iniziale solo se l'analisi di oggi deve ancora essere fatta.
+  const [splashOpen, setSplashOpen] = useState(() => online && area.status === 'idle')
+  const noPosition = area.status === 'idle' && locationError !== null && areaOrigin === null
+  const [gpsWaitOver, setGpsWaitOver] = useState(false)
+  useEffect(() => {
+    if (!splashOpen) return
+    setGpsWaitOver(false)
+    const id = window.setTimeout(() => setGpsWaitOver(true), GPS_WAIT_MS)
+    return () => window.clearTimeout(id)
+  }, [splashOpen])
+  const gpsGaveUp = gpsWaitOver || (locationError !== null && locationError.kind !== 'timeout')
+  const gpsPending = !(position !== null && position.accuracyM <= GPS_GOOD_M) && !gpsGaveUp
+  useEffect(() => {
+    if (!splashOpen) return
+    if (!online || area.status === 'failed' || noPosition) return setSplashOpen(false)
+    // Si lascia vedere il 100% prima di chiudere; senza posizione non si aspetta all'infinito.
+    const settled = area.status === 'ready' && !area.preparing && !gpsPending
+    const wait = settled ? SPLASH_DONE_MS : area.status === 'idle' ? SPLASH_POSITION_WAIT_MS : null
+    if (wait === null) return
+    const id = window.setTimeout(() => setSplashOpen(false), wait)
+    return () => window.clearTimeout(id)
+  }, [splashOpen, online, area.status, area.preparing, noPosition, gpsPending])
+  // Nuovo giorno con l'app aperta: la schermata riparte come al primo avvio.
+  const seenGeneration = useRef(area.generation)
+  useEffect(() => {
+    if (area.generation === seenGeneration.current) return
+    seenGeneration.current = area.generation
+    if (online && areaOrigin) setSplashOpen(true)
+  }, [area.generation, online, areaOrigin])
 
   const [speciesId, setSpeciesId] = useState(SPECIES[0].id)
   const species = useMemo(() => SPECIES.find((s) => s.id === speciesId) ?? SPECIES[0], [speciesId])
@@ -101,13 +149,17 @@ export default function App() {
   }
 
   // Mappa disponibile anche senza rete attorno al punto di partenza (per tornare indietro).
-  const startLat = start.startPoint?.lat
-  const startLon = start.startPoint?.lon
   useEffect(() => {
     if (startLat !== undefined && startLon !== undefined) void prefetchTiles({ lat: startLat, lon: startLon })
   }, [startLat, startLon])
 
   const hasGrid = grid.scored.length > 0
+  const showZone = (zone: ZoneReport) => {
+    setAreaOpen(false)
+    setSpeciesId(zone.speciesId)
+    setFocus({ lat: zone.point.lat, lon: zone.point.lon })
+    compute(zone.point)
+  }
   const quickSaveStart = () => {
     if (!position) return
     if (start.startPoint) setReplaceStartOpen(true)
@@ -142,6 +194,15 @@ export default function App() {
         onCenterChange={onCenterChange}
         onComputePoint={compute}
       >
+        <button
+          type="button"
+          className={`map-fab compact area-fab ${area.status}`}
+          onClick={() => setAreaOpen(true)}
+          title="Zona migliore entro 120 km"
+          aria-label="Zona migliore entro 120 km"
+        >
+          <Icon name="star" size={20} />
+        </button>
         <button
           type="button"
           className="map-fab compact"
@@ -339,7 +400,17 @@ export default function App() {
         </section>
       )}
 
-      <Disclaimer open={disclaimerOpen} onClose={closeDisclaimer} />
+      <Disclaimer open={disclaimerOpen && !splashOpen} onClose={closeDisclaimer} />
+      {splashOpen && (
+        <SplashScreen
+          status={area.status}
+          progress={area.progress}
+          waitingGps={gpsPending}
+          gpsAccuracyM={position?.accuracyM ?? null}
+          onSkip={() => setSplashOpen(false)}
+        />
+      )}
+      {areaOpen && <BestAreaCard area={area} onShow={showZone} onClose={() => setAreaOpen(false)} />}
       {weatherMapCenter && (
         <WeatherPanel
           species={species}

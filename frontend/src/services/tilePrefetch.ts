@@ -18,12 +18,18 @@ export function markMapIdle() {
   markIdle()
 }
 
+interface PrefetchOptions {
+  /** Tessere scaricate sul totale. */
+  onProgress?: (done: number, total: number) => void
+  concurrency?: number
+}
+
 /**
  * Scarica e salva sul dispositivo le tessere attorno a un punto, per avere una mappa anche senza rete.
  * Aspetta che la mappa visibile sia caricata; non fa nulla offline o con risparmio dati/2G.
  * Le tessere già salvate non vengono richieste di nuovo.
  */
-export async function prefetchTiles(center: LatLon): Promise<void> {
+export async function prefetchTiles(center: LatLon, { onProgress, concurrency = CONCURRENCY }: PrefetchOptions = {}): Promise<void> {
   if (!navigator.onLine || isConstrainedConnection()) return
   const key = `${center.lat.toFixed(3)},${center.lon.toFixed(3)}`
   if (done.has(key)) return
@@ -36,6 +42,7 @@ export async function prefetchTiles(center: LatLon): Promise<void> {
 
   const urls = tilesAround(center, GRID_RADIUS_M, OFFLINE_TILE_ZOOMS).map((t) => tileUrl(TILE_URL, t))
   let next = 0
+  let finished = 0
   const worker = async () => {
     while (next < urls.length) {
       try {
@@ -43,7 +50,8 @@ export async function prefetchTiles(center: LatLon): Promise<void> {
       } catch {
         // Tessera non scaricabile: la mappa online la chiederà di nuovo quando serve.
       }
+      onProgress?.(++finished, urls.length)
     }
   }
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker))
+  await Promise.all(Array.from({ length: concurrency }, worker))
 }

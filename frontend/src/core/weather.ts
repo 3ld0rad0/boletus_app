@@ -113,3 +113,44 @@ export function fetchWeatherSummary(point: LatLon, fetchFn: FetchFn = fetch): Pr
     return aggregateHourly(data, Date.now())
   })
 }
+
+const BATCH_SIZE = 50
+
+/**
+ * Riepilogo meteo per molti punti con poche richieste (Open-Meteo accetta liste di coordinate).
+ * Un punto senza dati sufficienti, o in un gruppo fallito, vale `null`.
+ */
+export async function fetchWeatherSummaries(
+  points: LatLon[],
+  onProgress?: (done: number, total: number) => void,
+  fetchFn: FetchFn = fetch,
+): Promise<(WeatherSummary | null)[]> {
+  const out: (WeatherSummary | null)[] = []
+  const batches = Math.ceil(points.length / BATCH_SIZE)
+  for (let b = 0; b < batches; b++) {
+    const batch = points.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE)
+    const params = new URLSearchParams({
+      latitude: batch.map((p) => p.lat.toFixed(2)).join(','),
+      longitude: batch.map((p) => p.lon.toFixed(2)).join(','),
+      hourly: 'temperature_2m,relative_humidity_2m,precipitation',
+      past_days: String(RAIN_WINDOW_DAYS),
+      forecast_days: '1',
+      timeformat: 'unixtime',
+    })
+    try {
+      const data = await getJson<HourlyResponse | HourlyResponse[]>(`${FORECAST_URL}?${params}`, fetchFn)
+      const items = Array.isArray(data) ? data : [data]
+      for (let i = 0; i < batch.length; i++) {
+        try {
+          out.push(aggregateHourly(items[i], Date.now()))
+        } catch {
+          out.push(null)
+        }
+      }
+    } catch {
+      out.push(...batch.map(() => null))
+    }
+    onProgress?.(b + 1, batches)
+  }
+  return out
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parsePlaces, searchPlaces } from './geocoding'
+import { parsePlaces, parseReverse, searchPlaces } from './geocoding'
 
 const response = {
   results: [
@@ -38,5 +38,19 @@ describe('searchPlaces', () => {
   it('propaga gli errori HTTP', async () => {
     const fetchFn = vi.fn(async () => new Response('', { status: 400 }))
     await expect(searchPlaces('Errore', fetchFn)).rejects.toThrow(/400/)
+  })
+})
+
+describe('parseReverse', () => {
+  it('preferisce città, poi paese e frazione, con provincia e regione', () => {
+    expect(parseReverse({ address: { town: 'Camigliatello', county: 'Cosenza', state: 'Calabria' } })).toEqual({
+      name: 'Camigliatello',
+      detail: 'Cosenza, Calabria',
+    })
+    expect(parseReverse({ address: { city: 'Cosenza', village: 'Altro', state: 'Calabria' } })?.name).toBe('Cosenza')
+  })
+  it('senza indirizzo o nome: null', () => {
+    expect(parseReverse({})).toBeNull()
+    expect(parseReverse({ address: {} })).toBeNull()
   })
 })

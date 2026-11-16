@@ -1,4 +1,8 @@
+import { SETTLEMENT_FAR_M } from './scoring'
 import type { GridCell, Habitat, LatLon } from './types'
+
+// Margine attorno alla griglia per vedere anche gli abitati appena fuori (1° di latitudine ≈ 111 km).
+export const URBAN_MARGIN_DEG = (SETTLEMENT_FAR_M / 111_000) * 1.5
 
 export interface BBox {
   south: number

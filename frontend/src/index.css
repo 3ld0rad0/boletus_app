@@ -267,12 +267,12 @@
 .compare-title { margin: 14px 0 4px; font-size: 13px; font-weight: 800; color: var(--muted); }
 .compare ul { list-style: disc; padding-left: 18px; font-size: 14px; line-height: 1.4; display: grid; gap: 3px; }
 @media (max-width: 420px) { .compare-grid { gap: 6px; } .compare-grid figcaption { font-size: 12px; } }
-.species-info, .compare, .detail-sheet, .sheet-content, .full-panel, .search-results { --sb-thumb: rgba(23,63,50,.32); }
-.species-info::-webkit-scrollbar, .compare::-webkit-scrollbar, .detail-sheet::-webkit-scrollbar, .sheet-content::-webkit-scrollbar, .full-panel::-webkit-scrollbar, .search-results::-webkit-scrollbar { width: 10px; }
-.species-info::-webkit-scrollbar-track, .compare::-webkit-scrollbar-track, .detail-sheet::-webkit-scrollbar-track, .sheet-content::-webkit-scrollbar-track, .full-panel::-webkit-scrollbar-track, .search-results::-webkit-scrollbar-track { background: transparent; margin: 22px 0; }
-.species-info::-webkit-scrollbar-thumb, .compare::-webkit-scrollbar-thumb, .detail-sheet::-webkit-scrollbar-thumb, .sheet-content::-webkit-scrollbar-thumb, .full-panel::-webkit-scrollbar-thumb, .search-results::-webkit-scrollbar-thumb { background: var(--sb-thumb); border: 3px solid transparent; background-clip: padding-box; border-radius: 10px; }
-.species-info::-webkit-scrollbar-thumb:hover, .compare::-webkit-scrollbar-thumb:hover, .detail-sheet::-webkit-scrollbar-thumb:hover, .sheet-content::-webkit-scrollbar-thumb:hover, .full-panel::-webkit-scrollbar-thumb:hover, .search-results::-webkit-scrollbar-thumb:hover { background: var(--forest-700); background-clip: padding-box; }
-@supports not selector(::-webkit-scrollbar) { .species-info, .compare, .detail-sheet, .sheet-content, .full-panel, .search-results { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; } }
+.species-info, .compare, .detail-sheet, .sheet-content, .full-panel, .search-results, .area-card { --sb-thumb: rgba(23,63,50,.32); }
+.species-info::-webkit-scrollbar, .compare::-webkit-scrollbar, .detail-sheet::-webkit-scrollbar, .sheet-content::-webkit-scrollbar, .full-panel::-webkit-scrollbar, .search-results::-webkit-scrollbar, .area-card::-webkit-scrollbar { width: 10px; }
+.species-info::-webkit-scrollbar-track, .compare::-webkit-scrollbar-track, .detail-sheet::-webkit-scrollbar-track, .sheet-content::-webkit-scrollbar-track, .full-panel::-webkit-scrollbar-track, .search-results::-webkit-scrollbar-track, .area-card::-webkit-scrollbar-track { background: transparent; margin: 22px 0; }
+.species-info::-webkit-scrollbar-thumb, .compare::-webkit-scrollbar-thumb, .detail-sheet::-webkit-scrollbar-thumb, .sheet-content::-webkit-scrollbar-thumb, .full-panel::-webkit-scrollbar-thumb, .search-results::-webkit-scrollbar-thumb, .area-card::-webkit-scrollbar-thumb { background: var(--sb-thumb); border: 3px solid transparent; background-clip: padding-box; border-radius: 10px; }
+.species-info::-webkit-scrollbar-thumb:hover, .compare::-webkit-scrollbar-thumb:hover, .detail-sheet::-webkit-scrollbar-thumb:hover, .sheet-content::-webkit-scrollbar-thumb:hover, .full-panel::-webkit-scrollbar-thumb:hover, .search-results::-webkit-scrollbar-thumb:hover, .area-card::-webkit-scrollbar-thumb:hover { background: var(--forest-700); background-clip: padding-box; }
+@supports not selector(::-webkit-scrollbar) { .species-info, .compare, .detail-sheet, .sheet-content, .full-panel, .search-results, .area-card { scrollbar-width: thin; scrollbar-color: var(--sb-thumb) transparent; } }
 .search-box input[type="search"]::-webkit-search-cancel-button, .search-box input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
 .show-start { grid-column: 1 / -1; margin-top: 10px; min-height: 46px; font-size: 15px; }
 .chart-optimal-band { fill: #2e9b5f; opacity: .18; }
@@ -332,6 +332,68 @@
 .species-chips button.active { border-color: var(--forest-800); background: var(--sand-100); }
 .species-chips i { width: 12px; height: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,.12); }
 .species-chips b { font-variant-numeric: tabular-nums; }
+
+.area-fab { position: relative; }
+.area-fab.scanning::after, .area-fab.ready::after { content: ''; position: absolute; top: -4px; right: -4px; width: 13px; height: 13px; border-radius: 50%; }
+.area-fab.scanning::after { border: 2.5px solid var(--sand-200); border-top-color: var(--forest-900); background: #fff; animation: spin .8s linear infinite; }
+.area-fab.ready::after { background: #1b7a3a; border: 2px solid #fff; }
+.area-card { width: min(100%, 480px); max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; padding: 13px 18px calc(18px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; background: var(--surface-solid); }
+.area-card .detail-head { margin-top: 10px; }
+.area-card .detail-head h2 { margin: 2px 0 2px; }
+.area-where { color: var(--muted); font-size: 13px; }
+.area-headline { margin: 6px 0 12px; }
+.area-charts-title, .area-charts-body { display: none; }
+.area-charts.open .area-charts-body { display: block; }
+.area-charts-toggle { width: 100%; min-height: 44px; margin-top: 14px; padding: 6px 12px; display: flex; align-items: center; justify-content: space-between; border-radius: 12px; background: var(--sand-100); color: var(--forest-900); font-weight: 800; font-size: 14px; }
+.area-charts-toggle .icon { transition: transform .2s; }
+.area-charts.open .area-charts-toggle .icon { transform: rotate(180deg); }
+.area-title { margin: 18px 0 8px; font-size: 15px; font-weight: 800; color: var(--forest-900); }
+.area-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0 0; }
+.area-facts > div { padding: 8px 10px; border-radius: 12px; background: var(--sand-100); }
+.area-facts > .wide { grid-column: 1 / -1; }
+.area-facts dt { font-size: 11px; color: var(--muted); }
+.area-facts dd { margin: 1px 0 0; font-weight: 800; }
+.area-species { display: grid; gap: 4px; }
+.area-species li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; font-size: 14px; }
+.area-species li small { display: block; font-size: 11px; color: var(--muted); line-height: 1.2; }
+.area-species li strong { text-align: right; font-variant-numeric: tabular-nums; }
+.area-species-bar { display: block; height: 8px; border-radius: 4px; background: rgba(23, 63, 50, .12); overflow: hidden; }
+.area-species-bar b { display: block; height: 100%; border-radius: inherit; }
+.area-species li.active { background: rgba(23, 63, 50, .08); font-weight: 800; }
+.area-card .sources { margin: 0 0 14px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+.area-card > .button { margin-top: 8px; }
+@media (min-width: 700px) {
+  .area-card { width: min(94vw, 940px); border-radius: 24px; margin-bottom: 24px; padding: 13px 28px 24px; }
+  .area-facts { grid-template-columns: repeat(5, 1fr); }
+  .area-facts > .wide { grid-column: auto; }
+  .area-charts-toggle { display: none; }
+  .area-charts-title { display: block; }
+  .area-charts-body { display: block; }
+  .area-charts .weather-history { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .area-charts .chart-note { grid-column: 1 / -1; }
+  .area-species { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+}
+
+.splash { position: fixed; inset: 0; z-index: 18; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 16px; padding: max(22px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom)); background: radial-gradient(circle at 50% 0%, var(--forest-800), var(--forest-950) 72%); color: #fff; animation: splash-in .3s ease; overflow-y: auto; }
+.splash-brand { width: min(100%, 420px); display: flex; align-items: center; gap: 10px; }
+.splash-brand strong, .splash-brand small { display: block; }
+.splash-brand strong { font-size: 22px; line-height: 1.1; }
+.splash-brand small { color: rgba(255,255,255,.75); font-size: 13px; }
+.splash-tip { width: min(100%, 420px); display: flex; flex-direction: column; gap: 10px; animation: splash-tip .5s ease; }
+.splash-photo { position: relative; height: clamp(120px, 34dvh, 300px); border-radius: 20px; overflow: hidden; background: rgba(255,255,255,.08); }
+.splash-photo img { width: 100%; height: 100%; object-fit: cover; }
+.splash-photo small { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; font-size: 10px; color: rgba(255,255,255,.85); background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+.splash-photo.plain { display: grid; place-items: center; color: #f2c334; }
+.splash-tip h2 { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.splash-tip p { color: rgba(255,255,255,.85); line-height: 1.45; }
+.splash-footer { width: min(100%, 420px); }
+.splash-quip { min-height: 1.5em; margin-bottom: 8px; text-align: center; font-style: italic; font-weight: 700; color: #f2c334; animation: splash-tip .4s ease; }
+.splash-bar { height: 8px; border-radius: 8px; background: rgba(255,255,255,.18); overflow: hidden; }
+.splash-bar > span { display: block; height: 100%; border-radius: inherit; background: #f2c334; transition: width .6s ease; }
+.splash-phase { display: flex; justify-content: space-between; margin: 8px 0 12px; font-size: 13px; color: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
+.splash-skip { width: 100%; min-height: 44px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.35); color: #fff; font-weight: 800; font-size: 14px; }
+@keyframes splash-in { from { opacity: 0; } }
+@keyframes splash-tip { from { opacity: 0; transform: translateY(8px); } }
 
 /* Mobile: controlli più compatti per lasciare spazio alla mappa. */
 @media (max-width: 699px) {

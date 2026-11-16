@@ -33,7 +33,7 @@ function loadTile(z: number, x: number, y: number): Promise<Uint8ClampedArray> {
   return tile
 }
 
-/** Quote (m) per una lista di punti, lette dalle tile Terrarium. */
-export function fetchElevations(points: LatLon[]): Promise<number[]> {
-  return elevationsFromTiles(points, loadTile)
+/** Quote (m) per una lista di punti, lette dalle tile Terrarium; `zoom` più basso = meno tile, meno dettaglio. */
+export function fetchElevations(points: LatLon[], zoom?: number): Promise<number[]> {
+  return elevationsFromTiles(points, loadTile, zoom)
 }

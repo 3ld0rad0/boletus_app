@@ -19,7 +19,7 @@ export type IconName =
   | 'arrow'
   | 'cloud'
   | 'mushroom'
-
+  | 'star'
 const PATHS: Record<IconName, ReactNode> = {
   search: (
     <>
@@ -99,6 +99,7 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   cloud: <path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.5a4.75 4.75 0 0 1 0 9.5H7Z" />,
+  star: <path d="m12 3 2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1-4.5-4.3 6.1-.8L12 3Z" />,
   arrow: (
     <>
       <path d="M12 21V4" />

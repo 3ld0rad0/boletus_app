@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
-import { habitatBbox, habitatsFromImage, urbanDistancesFromImage } from '../core/landcover'
-import { scoreGrid, SETTLEMENT_FAR_M } from '../core/scoring'
+import { habitatBbox, habitatsFromImage, urbanDistancesFromImage, URBAN_MARGIN_DEG } from '../core/landcover'
+import { scoreGrid } from '../core/scoring'
 import type { GridCell, Habitat, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
 import { fetchWeatherSummary } from '../core/weather'
 import { fetchLandcover } from '../services/corine'
@@ -9,9 +9,6 @@ import { fetchElevations } from '../services/terrarium'
 import { GRID_RADIUS_M, GRID_RINGS } from '../config'
 
 export type HabitatStatus = 'loading' | 'ready' | 'failed'
-
-// Margine attorno alla griglia per vedere anche gli abitati appena fuori (1° di latitudine ≈ 111 km).
-const URBAN_MARGIN_DEG = SETTLEMENT_FAR_M / 111_000 * 1.5
 
 interface GridData {
   center: LatLon

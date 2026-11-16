@@ -1,5 +1,6 @@
 import { fetchWithRetry } from './http'
 import { createCache } from './memoryCache'
+import type { LatLon } from './types'
 
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search'
 const MAX_RESULTS = 6
@@ -45,5 +46,40 @@ export function searchPlaces(query: string, fetchFn: typeof fetch = fetch): Prom
     const res = await fetchWithRetry(`${GEOCODING_URL}?${params}`, fetchFn)
     if (!res.ok) throw new Error(`Ricerca non disponibile (${res.status})`)
     return parsePlaces((await res.json()) as GeocodingResponse)
+  })
+}
+
+export interface PlaceName {
+  name: string
+  /** Provincia e regione. */
+  detail: string
+}
+
+interface ReverseResponse {
+  name?: string
+  address?: Record<string, string | undefined>
+}
+
+/** Comune più vicino dalla risposta di Nominatim; `null` se non c'è un indirizzo. */
+export function parseReverse(data: ReverseResponse): PlaceName | null {
+  const a = data.address
+  if (!a) return null
+  const name = a.city ?? a.town ?? a.village ?? a.municipality ?? a.hamlet ?? data.name
+  if (!name) return null
+  return { name, detail: [a.county ?? a.state_district, a.state].filter(Boolean).join(', ') }
+}
+
+const REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse'
+const reverseCache = createCache(24 * 60 * 60 * 1000)
+
+/** Comune più vicino a un punto (Nominatim, livello comune); una sola richiesta per punto, poi in cache. */
+export function reverseGeocode(point: LatLon, fetchFn: typeof fetch = fetch): Promise<PlaceName | null> {
+  const lat = point.lat.toFixed(3)
+  const lon = point.lon.toFixed(3)
+  return reverseCache.get(`${lat},${lon}`, async () => {
+    const params = new URLSearchParams({ format: 'jsonv2', lat, lon, zoom: '10', 'accept-language': 'it' })
+    const res = await fetchWithRetry(`${REVERSE_URL}?${params}`, fetchFn)
+    if (!res.ok) throw new Error(`Località non disponibile (${res.status})`)
+    return parseReverse((await res.json()) as ReverseResponse)
   })
 }
