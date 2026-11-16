@@ -42,6 +42,15 @@ function goTo(map: L.Map, target: L.LatLngTuple, zoom: number) {
   else map.setView(target, zoom, { animate: false })
 }
 
+/** Margini che tengono l'area fuori dalla barra in alto e dal pannello in basso. */
+function freeAreaPadding(map: L.Map, desktop: L.FitBoundsOptions): L.FitBoundsOptions {
+  if (!window.matchMedia('(max-width: 699px)').matches) return desktop
+  const top = (document.querySelector('.top-controls')?.getBoundingClientRect().bottom ?? 100) + 10
+  const sheetTop = document.querySelector('.bottom-sheet')?.getBoundingClientRect().top
+  const bottom = sheetTop ? map.getSize().y - sheetTop + 10 : 160
+  return { paddingTopLeft: [16, top], paddingBottomRight: [16, bottom] }
+}
+
 /** Inquadra l'area senza scendere sotto MIN_FIT_ZOOM: su schermi piccoli la griglia sfora i bordi, ma resta leggibile. */
 const MIN_FIT_ZOOM = 13
 function fitArea(map: L.Map, bounds: L.LatLngBounds, options: L.FitBoundsOptions) {
@@ -152,7 +161,16 @@ export function MapView({
       zoomControl: false,
       // Il doppio click serve per calcolare; si zooma con pinch e pulsanti +/-.
       doubleClickZoom: false,
+      // Margine ampio: con il default (10%) la griglia e il raggio vengono tagliati durante il pan.
+      renderer: L.svg({ padding: 0.5 }),
     })
+    // Barre del browser, rotazione e tastiera cambiano l'altezza: senza ricalcolo la mappa resta tagliata.
+    let resizeFrame = 0
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(() => map.invalidateSize({ pan: false }))
+    })
+    resizeObserver.observe(containerRef.current)
     // Niente caricamenti durante i gesti e buffer corto: su rete lenta ogni tassello in più ritarda quelli visibili.
     new CachedTileLayer(TILE_URL, {
       attribution: TILE_ATTRIBUTION,
@@ -184,6 +202,8 @@ export function MapView({
     mapRef.current = map
     const rects = rectsRef.current
     return () => {
+      cancelAnimationFrame(resizeFrame)
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
       gridRef.current = null
@@ -224,7 +244,7 @@ export function MapView({
     if (key !== lastFitKey.current) {
       lastFitKey.current = key
       const bounds = L.latLngBounds(cells.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])))
-      fitArea(map, bounds, { padding: [40, 40], duration: 0.8 })
+      fitArea(map, bounds, { ...freeAreaPadding(map, { padding: [40, 40] }), duration: 0.8 })
     }
   }, [cells])
 
@@ -237,7 +257,10 @@ export function MapView({
       cellsRef.current.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])),
     )
     // Margini extra per non finire sotto la barra in alto e il pannello in basso.
-    fitArea(map, bounds, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230], duration: 0.8 })
+    fitArea(map, bounds, {
+      ...freeAreaPadding(map, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230] }),
+      duration: 0.8,
+    })
   }, [fitGridRequest])
 
   useEffect(() => {
