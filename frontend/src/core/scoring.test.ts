@@ -154,12 +154,12 @@ describe('fattore vicinanza abitato', () => {
     expect(at(Infinity).score).toBe(100)
   })
   it('entro 200 m applica il moltiplicatore minimo', () => {
-    expect(at(0).score).toBe(70)
-    expect(at(200).score).toBe(70)
+    expect(at(0).score).toBe(60)
+    expect(at(200).score).toBe(60)
   })
   it('cresce linearmente tra 200 m e 1 km', () => {
-    // 600 m → valore 0,5 → 1 − 0,3 × 0,5 = 0,85
-    expect(at(600).score).toBe(85)
+    // 600 m → valore 0,5 → 1 − 0,4 × 0,5 = 0,8
+    expect(at(600).score).toBe(80)
     expect(at(600).factors.find((f) => f.id === 'settlement')?.detail).toContain('600 m')
   })
   it('scoreGrid passa la distanza di ogni cella', () => {

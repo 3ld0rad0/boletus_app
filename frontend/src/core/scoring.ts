@@ -29,7 +29,7 @@ export const LAPSE_RATE_C_PER_M = 0.0065
 // Quanto stagione e quota possono abbassare il punteggio: moltiplicatore = 1 − influenza × (1 − valore).
 export const SEASON_INFLUENCE = 0.7
 export const ELEVATION_INFLUENCE = 0.5
-export const SETTLEMENT_INFLUENCE = 0.3
+export const SETTLEMENT_INFLUENCE = 0.4
 
 // Entro NEAR dall'abitato il fattore vale 0, oltre FAR vale 1, in mezzo cresce linearmente.
 export const SETTLEMENT_NEAR_M = 200
