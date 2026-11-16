@@ -392,8 +392,11 @@
 .splash-bar > span { display: block; height: 100%; border-radius: inherit; background: #f2c334; transition: width .6s ease; }
 .splash-phase { display: flex; justify-content: space-between; margin: 8px 0 12px; font-size: 13px; color: rgba(255,255,255,.85); font-variant-numeric: tabular-nums; }
 .splash-skip { width: 100%; min-height: 44px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.35); color: #fff; font-weight: 800; font-size: 14px; }
+.splash-version { margin-top: 10px; text-align: center; font-size: 11px; color: rgba(255,255,255,.55); }
 @keyframes splash-in { from { opacity: 0; } }
 @keyframes splash-tip { from { opacity: 0; transform: translateY(8px); } }
+
+.app-version { margin-top: 24px; text-align: center; font-size: 12px; color: var(--muted); }
 
 /* Mobile: controlli più compatti per lasciare spazio alla mappa. */
 @media (max-width: 699px) {

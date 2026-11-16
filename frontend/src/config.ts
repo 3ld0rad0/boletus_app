@@ -15,6 +15,8 @@ export const TILE_CACHE_MAX_TILES = 1500
 
 export const DEFAULT_CENTER: LatLon = { lat: 42.5, lon: 12.5 }
 
+export const APP_VERSION = __APP_VERSION__
+
 /** Scarto tra nord magnetico e nord reale (est positivo); valore medio per l'Italia, usato dove il sensore dà solo il nord magnetico. */
 export const MAGNETIC_DECLINATION_DEG = 4
 export const DEFAULT_ZOOM = 5.5

@@ -1,3 +1,4 @@
+import { APP_VERSION } from '../config'
 import { Icon } from './Icon'
 
 interface Props {
@@ -33,6 +34,7 @@ export function Disclaimer({ open, onClose }: Props) {
         <button type="button" className="button primary" onClick={onClose}>
           Ho capito
         </button>
+        <p className="app-version">Boletus v{APP_VERSION}</p>
       </div>
     </div>
   )

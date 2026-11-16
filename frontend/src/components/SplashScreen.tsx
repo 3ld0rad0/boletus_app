@@ -4,6 +4,7 @@ import { markSeen, pickUnseen } from '../core/pickUnseen'
 import { QUIPS, TIPS, type Tip } from '../data/tips'
 import type { AreaStatus, useBestArea } from '../hooks/useBestArea'
 import { storage, STORAGE_KEYS } from '../services/storage'
+import { APP_VERSION } from '../config'
 import { Icon } from './Icon'
 
 type Progress = ReturnType<typeof useBestArea>['progress']
@@ -118,6 +119,7 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
         <button type="button" className="splash-skip" onClick={onSkip}>
           Salta, continua in background
         </button>
+        <p className="splash-version">Versione {APP_VERSION}</p>
       </div>
     </div>
   )
