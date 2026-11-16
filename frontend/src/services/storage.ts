@@ -37,5 +37,6 @@ export const STORAGE_KEYS = {
   disclaimerAccepted: 'boletus.disclaimerAccepted',
   recentPlaces: 'boletus.recentPlaces',
   track: 'boletus.track',
+  pdrCalibration: 'boletus.pdrCalibration',
   lastView: 'boletus.lastView',
 } as const

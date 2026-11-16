@@ -3,6 +3,12 @@ export interface LatLon {
   lon: number
 }
 
+/** Punto del percorso: `gps` è una posizione misurata, `pdr` una stima da passi e bussola. */
+export interface TrackPoint extends LatLon {
+  source: 'gps' | 'pdr'
+  uncertaintyM: number
+}
+
 /** Curva trapezoidale: 0 fuori da [min, max], 1 in [optMin, optMax], lineare in mezzo. */
 export interface Trapezoid {
   min: number

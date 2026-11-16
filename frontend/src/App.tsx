@@ -23,6 +23,7 @@ import { useSunsetWarning } from './hooks/useSunsetWarning'
 import { useTrack } from './hooks/useTrack'
 import { DEFAULT_CENTER, GRID_RADIUS_M } from './config'
 import { storage, STORAGE_KEYS } from './services/storage'
+import type { Position } from './services/location'
 import { prefetchTiles } from './services/tilePrefetch'
 
 const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
@@ -31,7 +32,13 @@ export default function App() {
   const start = useStartPoint()
   // Con un punto di partenza salvato il percorso si registra anche a schermo spento (app nativa).
   const { position, error: locationError } = useLocation(start.startPoint !== null)
-  const track = useTrack(position, start.startPoint)
+  const { points: track, estimate } = useTrack(position, start.startPoint)
+  // Senza GPS la posizione è la punta del percorso stimato, con l'incertezza al posto della precisione.
+  const here = useMemo<Position | null>(() => {
+    const tip = track[track.length - 1]
+    if (!estimate || !tip) return position
+    return { lat: tip.lat, lon: tip.lon, accuracyM: estimate.uncertaintyM, timestamp: position?.timestamp ?? 0 }
+  }, [position, track, estimate])
   const sunset = useSunsetWarning(start.startPoint)
   const online = useOnline()
   const compass = useCompass()
@@ -114,16 +121,17 @@ export default function App() {
     const { sunset: at, minutesLeft } = sunset.warning
     const time = at.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
     const when = minutesLeft > 0 ? `Tramonto alle ${time} (tra ${minutesLeft} min)` : `Il sole è tramontato (${time})`
-    if (!position || !start.startPoint) return `${when}. Torna verso il punto di partenza.`
-    const distance = formatDistance(haversineM(position, start.startPoint))
-    const direction = cardinal(bearingDeg(position, start.startPoint))
+    if (!here || !start.startPoint) return `${when}. Torna verso il punto di partenza.`
+    const distance = formatDistance(haversineM(here, start.startPoint))
+    const direction = cardinal(bearingDeg(here, start.startPoint))
     return `${when}. Torna al punto di partenza: ${distance} verso ${direction}.`
   })()
 
   return (
     <main className="app-shell">
       <MapView
-        position={position}
+        position={here}
+        estimated={estimate !== null}
         startPoint={start.startPoint}
         track={track}
         focus={focus}
@@ -152,7 +160,7 @@ export default function App() {
       </MapView>
 
       <div className="left-controls">
-        <Compass compass={compass} position={position} startPoint={start.startPoint} track={track} />
+        <Compass compass={compass} position={here} startPoint={start.startPoint} track={track} />
       </div>
 
       <header className="top-controls">
@@ -188,6 +196,11 @@ export default function App() {
 
       <div className="status-chips">
         {!online && <span className="offline-chip">Offline</span>}
+        {estimate && (
+          <span className={estimate.unreliable ? 'offline-chip' : 'radius-chip'}>
+            Posizione stimata ±{Math.round(estimate.uncertaintyM)} m{estimate.unreliable ? ' · poco affidabile' : ''}
+          </span>
+        )}
         {compass.status === 'unavailable' && (
           <span className="radius-chip">Bussola non disponibile su questo dispositivo</span>
         )}
@@ -299,7 +312,8 @@ export default function App() {
             {sheetExpanded && (
               <>
                 <StartPointPanel
-                  position={position}
+                  position={here}
+                  estimated={estimate !== null}
                   startPoint={start.startPoint}
                   track={track}
                   onSave={start.save}

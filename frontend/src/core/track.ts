@@ -1,5 +1,5 @@
 import { haversineM } from './geo'
-import type { LatLon } from './types'
+import type { LatLon, TrackPoint } from './types'
 
 // 6 decimali ≈ 0,1 m: abbastanza, e il percorso salvato resta leggero.
 const round6 = (v: number) => Math.round(v * 1e6) / 1e6
@@ -8,12 +8,32 @@ const round6 = (v: number) => Math.round(v * 1e6) / 1e6
  * Aggiunge `p` al percorso se dista almeno `minStepM` dall'ultimo punto; altrimenti restituisce
  * lo stesso array. Oltre `maxPoints` dimezza i punti intermedi, tenendo primo e ultimo.
  */
-export function appendPoint(track: LatLon[], p: LatLon, minStepM: number, maxPoints: number): LatLon[] {
+export function appendPoint<T extends LatLon>(track: T[], p: T, minStepM: number, maxPoints: number): T[] {
   const last = track[track.length - 1]
   if (last && haversineM(last, p) < minStepM) return track
-  const next = [...track, { lat: round6(p.lat), lon: round6(p.lon) }]
-  if (next.length <= maxPoints) return next
-  return next.filter((_, i) => i === 0 || i === next.length - 1 || i % 2 === 0)
+  return capPoints([...track, { ...p, lat: round6(p.lat), lon: round6(p.lon) }], maxPoints)
+}
+
+/** Oltre `maxPoints` dimezza i punti intermedi, tenendo primo e ultimo. */
+export function capPoints<T>(points: T[], maxPoints: number): T[] {
+  if (points.length <= maxPoints) return points
+  return points.filter((_, i) => i === 0 || i === points.length - 1 || i % 2 === 0)
+}
+
+export interface TrackRun {
+  source: TrackPoint['source']
+  points: LatLon[]
+}
+
+/** Divide il percorso in tratti con la stessa origine; ognuno riparte dall'ultimo punto del precedente, così le linee restano unite. */
+export function splitBySource(points: TrackPoint[]): TrackRun[] {
+  const runs: TrackRun[] = []
+  points.forEach((p, i) => {
+    const run = runs[runs.length - 1]
+    if (run && run.source === p.source) run.points.push(p)
+    else runs.push({ source: p.source, points: i > 0 ? [points[i - 1], p] : [p] })
+  })
+  return runs
 }
 
 export function pathLengthM(points: LatLon[]): number {

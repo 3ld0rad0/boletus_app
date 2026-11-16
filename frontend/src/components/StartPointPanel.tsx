@@ -12,13 +12,15 @@ interface Props {
   startPoint: StartPoint | null
   /** Percorso registrato dalla partenza: se presente la guida di ritorno lo segue. */
   track: LatLon[]
+  /** La posizione è una stima da passi e bussola, non una misura GPS. */
+  estimated?: boolean
   onSave: (p: LatLon) => void
   onClear: () => void
   /** Centra la mappa sul punto di partenza. */
   onShowOnMap: () => void
 }
 
-export function StartPointPanel({ position, startPoint, track, onSave, onClear, onShowOnMap }: Props) {
+export function StartPointPanel({ position, startPoint, track, estimated = false, onSave, onClear, onShowOnMap }: Props) {
   const [confirm, setConfirm] = useState<'replace' | 'delete' | null>(null)
 
   const save = () => {
@@ -115,15 +117,15 @@ export function StartPointPanel({ position, startPoint, track, onSave, onClear, 
           {guide.followingTrack ? 'lungo il percorso · ' : ''}verso {cardinal(bearing)} ({Math.round(bearing)}°)
         </span>
         <small>
-          {guide.followingTrack ? `In linea d’aria ${formatDistance(distance)} · ` : ''}Precisione ±
-          {Math.round(position.accuracyM)} m · salvato alle {savedAt}
+          {guide.followingTrack ? `In linea d’aria ${formatDistance(distance)} · ` : ''}
+          {estimated ? 'Posizione stimata' : 'Precisione'} ±{Math.round(position.accuracyM)} m · salvato alle {savedAt}
         </small>
       </div>
       <button type="button" className="button primary show-start" onClick={onShowOnMap}>
         <Icon name="flag" size={20} /> Mostra il punto di partenza sulla mappa
       </button>
       <div className="point-actions">
-        <button type="button" onClick={save}>
+        <button type="button" onClick={save} disabled={estimated}>
           Sostituisci
         </button>
         <button type="button" onClick={() => setConfirm('delete')}>

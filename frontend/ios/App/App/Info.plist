@@ -29,7 +29,7 @@
         <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
         <string>Boletus registra il percorso anche a schermo spento per aiutarti a tornare al punto di partenza.</string>
         <key>NSMotionUsageDescription</key>
-        <string>Boletus usa la bussola del dispositivo per mostrarti l'orientamento.</string>
+        <string>Boletus usa i sensori di movimento per la bussola e per contare i passi, così può stimare il percorso quando il GPS non è disponibile.</string>
         <key>UIBackgroundModes</key>
         <array>
                 <string>location</string>

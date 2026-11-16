@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { LatLon, ScoredCell } from '../core/types'
+import type { LatLon, ScoredCell, TrackPoint } from '../core/types'
+import { splitBySource } from '../core/track'
 import type { Position } from '../services/location'
 import {
   BAND_COLORS,
@@ -41,11 +42,28 @@ function goTo(map: L.Map, target: L.LatLngTuple, zoom: number) {
   else map.setView(target, zoom, { animate: false })
 }
 
+/** Inquadra l'area senza scendere sotto MIN_FIT_ZOOM: su schermi piccoli la griglia sfora i bordi, ma resta leggibile. */
+const MIN_FIT_ZOOM = 13
+function fitArea(map: L.Map, bounds: L.LatLngBounds, options: L.FitBoundsOptions) {
+  const padding = L.point(
+    (options.paddingTopLeft ? L.point(options.paddingTopLeft).x : 0) +
+      (options.paddingBottomRight ? L.point(options.paddingBottomRight).x : 0) +
+      (options.padding ? L.point(options.padding).x * 2 : 0),
+    (options.paddingTopLeft ? L.point(options.paddingTopLeft).y : 0) +
+      (options.paddingBottomRight ? L.point(options.paddingBottomRight).y : 0) +
+      (options.padding ? L.point(options.padding).y * 2 : 0),
+  )
+  if (map.getBoundsZoom(bounds, false, padding) >= MIN_FIT_ZOOM) map.fitBounds(bounds, options)
+  else map.flyTo(bounds.getCenter(), MIN_FIT_ZOOM, { duration: options.duration })
+}
+
 interface Props {
   position: Position | null
   startPoint: LatLon | null
   /** Percorso registrato dalla partenza alla posizione attuale. */
-  track: LatLon[]
+  track: TrackPoint[]
+  /** La posizione è una stima da passi e bussola: il cerchio indica l'incertezza. */
+  estimated?: boolean
   /** Cambiando riferimento la mappa si sposta qui (es. località cercata). */
   focus: LatLon | null
   /** Ogni incremento reinquadra la griglia corrente. */
@@ -65,6 +83,9 @@ const SELECTED_STYLE: L.PathOptions = { color: '#fff', weight: 5, opacity: 1 }
 // Visibile anche senza tessere di mappa, per tornare al punto di partenza.
 const HOME_LINE_STYLE: L.PolylineOptions = { color: '#173f32', weight: 4, opacity: 0.85, dashArray: '2 9', lineCap: 'round', interactive: false }
 const TRACK_STYLE: L.PolylineOptions = { color: '#bd5c32', weight: 4, opacity: 0.9, lineJoin: 'round', interactive: false }
+const PDR_TRACK_STYLE: L.PolylineOptions = { ...TRACK_STYLE, opacity: 0.75, dashArray: '2 9', lineCap: 'round' }
+const ACCURACY_STYLE: L.CircleOptions = { stroke: false, fillColor: '#1e88e5', fillOpacity: 0.15 }
+const ESTIMATE_STYLE: L.CircleOptions = { stroke: true, color: '#bd5c32', weight: 2, dashArray: '4 6', fillColor: '#bd5c32', fillOpacity: 0.12 }
 
 const USER_ICON = L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [18, 18] })
 // Stessa icona "flag" di Icon.tsx; punta del segnaposto in basso al centro.
@@ -90,6 +111,7 @@ function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null
 
 export function MapView({
   position,
+  estimated = false,
   startPoint,
   track,
   focus,
@@ -109,7 +131,7 @@ export function MapView({
   const userMarkerRef = useRef<L.Marker | null>(null)
   const startMarkerRef = useRef<L.Marker | null>(null)
   const homeLineRef = useRef<L.Polyline | null>(null)
-  const trackRef = useRef<L.Polyline | null>(null)
+  const trackRef = useRef<L.LayerGroup | null>(null)
   const centeredOnUser = useRef(false)
   const selectedRef = useRef<string | null>(null)
   const lastFitKey = useRef<string | null>(null)
@@ -202,7 +224,7 @@ export function MapView({
     if (key !== lastFitKey.current) {
       lastFitKey.current = key
       const bounds = L.latLngBounds(cells.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])))
-      map.fitBounds(bounds, { padding: [40, 40], duration: 0.8 })
+      fitArea(map, bounds, { padding: [40, 40], duration: 0.8 })
     }
   }, [cells])
 
@@ -215,7 +237,7 @@ export function MapView({
       cellsRef.current.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])),
     )
     // Margini extra per non finire sotto la barra in alto e il pannello in basso.
-    map.fitBounds(bounds, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230], duration: 0.8 })
+    fitArea(map, bounds, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230], duration: 0.8 })
   }, [fitGridRequest])
 
   useEffect(() => {
@@ -235,20 +257,21 @@ export function MapView({
       }).addTo(map)
       accuracyRef.current = L.circle(latLng, {
         radius: position.accuracyM,
-        stroke: false,
-        fillColor: '#1e88e5',
-        fillOpacity: 0.15,
+        ...(estimated ? ESTIMATE_STYLE : ACCURACY_STYLE),
         interactive: false,
       }).addTo(map)
     } else {
       userMarkerRef.current.setLatLng(latLng)
-      accuracyRef.current?.setLatLng(latLng).setRadius(position.accuracyM)
+      accuracyRef.current
+        ?.setLatLng(latLng)
+        .setRadius(position.accuracyM)
+        .setStyle(estimated ? ESTIMATE_STYLE : ACCURACY_STYLE)
     }
     if (!centeredOnUser.current) {
       centeredOnUser.current = true
       goTo(map, latLng, USER_ZOOM)
     }
-  }, [position])
+  }, [position, estimated])
 
   useEffect(() => {
     const map = mapRef.current
@@ -284,15 +307,16 @@ export function MapView({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const latLngs = track.map((p): L.LatLngTuple => [p.lat, p.lon])
-    if (!trackRef.current) {
-      if (latLngs.length > 1) trackRef.current = L.polyline(latLngs, TRACK_STYLE).addTo(map)
-    } else if (latLngs.length > 1) {
-      trackRef.current.setLatLngs(latLngs)
-    } else {
-      trackRef.current.remove()
-      trackRef.current = null
+    trackRef.current?.remove()
+    trackRef.current = null
+    if (track.length < 2) return
+    const layer = L.layerGroup()
+    for (const run of splitBySource(track)) {
+      if (run.points.length < 2) continue
+      const latLngs = run.points.map((p): L.LatLngTuple => [p.lat, p.lon])
+      L.polyline(latLngs, run.source === 'pdr' ? PDR_TRACK_STYLE : TRACK_STYLE).addTo(layer)
     }
+    trackRef.current = layer.addTo(map)
   }, [track])
 
   useEffect(() => {

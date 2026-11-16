@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { haversineM, offsetMeters } from './geo'
-import { appendPoint, pathLengthM, returnGuide } from './track'
+import { appendPoint, pathLengthM, returnGuide, splitBySource } from './track'
+import type { TrackPoint } from './types'
 
 const START = { lat: 39.3, lon: 16.25 }
 const at = (eastM: number, northM = 0) => offsetMeters(START, eastM, northM)
@@ -21,6 +22,24 @@ describe('appendPoint', () => {
     expect(next.length).toBeLessThan(10)
     expect(next[0]).toEqual(track[0])
     expect(haversineM(next[next.length - 1], at(300))).toBeLessThan(0.5)
+  })
+})
+
+describe('splitBySource', () => {
+  const pt = (eastM: number, source: TrackPoint['source']): TrackPoint => ({ ...at(eastM), source, uncertaintyM: 5 })
+
+  it('divide per origine e unisce i tratti con il punto di raccordo', () => {
+    const runs = splitBySource([pt(0, 'gps'), pt(10, 'gps'), pt(20, 'pdr'), pt(30, 'pdr'), pt(40, 'gps')])
+    expect(runs.map((r) => [r.source, r.points.length])).toEqual([
+      ['gps', 2],
+      ['pdr', 3],
+      ['gps', 2],
+    ])
+    expect(runs[1].points[0]).toMatchObject(at(10))
+  })
+  it('percorso vuoto o di un solo punto', () => {
+    expect(splitBySource([])).toEqual([])
+    expect(splitBySource([pt(0, 'gps')])).toHaveLength(1)
   })
 })
 
