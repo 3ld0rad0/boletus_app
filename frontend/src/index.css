@@ -379,11 +379,17 @@
 .splash-brand strong, .splash-brand small { display: block; }
 .splash-brand strong { font-size: 22px; line-height: 1.1; }
 .splash-brand small { color: rgba(255,255,255,.75); font-size: 13px; }
-.splash-tip { width: min(100%, 420px); display: flex; flex-direction: column; gap: 10px; animation: splash-tip .5s ease; }
-.splash-photo { position: relative; height: clamp(120px, 34dvh, 300px); border-radius: 20px; overflow: hidden; background: rgba(255,255,255,.08); }
-.splash-photo img { width: 100%; height: 100%; object-fit: cover; }
-.splash-photo small { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 10px 6px; font-size: 10px; color: rgba(255,255,255,.85); background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+.splash-tip { width: min(100%, 420px); display: flex; flex-direction: column; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.splash-tip-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; animation: splash-tip .5s ease; }
+.splash-hint { text-align: center; font-size: 12px; color: rgba(255,255,255,.55); }
+.splash-photo { position: relative; width: clamp(130px, 30dvh, 220px); aspect-ratio: 1; margin: 20px 0 28px; border-radius: 50%; background: rgba(255,255,255,.08); box-shadow: 0 0 0 3px #f2c334, 0 0 26px rgba(242,195,52,.35); }
+.splash-photo img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.splash-photo::before, .splash-photo::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 3px solid rgba(242,195,52,.65); pointer-events: none; animation: splash-pulse 2.4s ease-out infinite; }
+.splash-photo::after { animation-delay: 1.2s; }
 .splash-photo.plain { display: grid; place-items: center; color: #f2c334; }
+.splash-credit { font-size: 10px; color: rgba(255,255,255,.6); }
+@keyframes splash-pulse { from { transform: scale(1); opacity: .85; } to { transform: scale(1.22); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .splash-photo::before, .splash-photo::after { animation: none; opacity: 0; } }
 .splash-tip h2 { font-size: 20px; font-weight: 800; line-height: 1.2; }
 .splash-tip p { color: rgba(255,255,255,.85); line-height: 1.45; }
 .splash-footer { width: min(100%, 420px); }
@@ -438,5 +444,6 @@
   /* Il blur su una mappa in movimento fa sfarfallare il rendering su mobile. */
   .search-box, .icon-button.glass, .species-trigger, .map-fab, .bottom-sheet, .detail-sheet { backdrop-filter: none; }
   .search-box, .icon-button.glass, .species-trigger, .map-fab { background: var(--surface-solid); }
+  .detail-sheet, .bottom-sheet.expanded { background: var(--surface-solid); }
   .bottom-sheet.partial { background: rgba(250, 248, 242, .96); }
 }

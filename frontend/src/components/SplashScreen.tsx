@@ -58,10 +58,12 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
     const id = window.setInterval(() => setQuipIndex((i) => i + 1), QUIP_MS)
     return () => window.clearInterval(id)
   }, [])
+  // Il timer riparte a ogni cambio, anche quando il consiglio viene cambiato con un tocco.
+  const nextTip = () => setTip(pickUnseen(TIPS, tipKey, readSeenTips()))
   useEffect(() => {
-    const id = window.setInterval(() => setTip(() => pickUnseen(TIPS, tipKey, readSeenTips())), TIP_MS)
-    return () => window.clearInterval(id)
-  }, [])
+    const id = window.setTimeout(() => setTip(pickUnseen(TIPS, tipKey, readSeenTips())), TIP_MS)
+    return () => window.clearTimeout(id)
+  }, [tip])
   // Foto dei consigli già pronte quando scorrono.
   useEffect(() => {
     for (const t of TIPS) if (t.photo) new Image().src = t.photo.src
@@ -81,21 +83,31 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
         </div>
       </div>
 
-      <div className="splash-tip" key={tip.title}>
-        <div className={tip.photo ? 'splash-photo' : 'splash-photo plain'}>
-          {tip.photo ? (
-            <>
-              <img src={tip.photo.src} alt="" />
-              <small>
-                Foto: {tip.photo.author} · {tip.photo.license}
-              </small>
-            </>
-          ) : (
-            <Icon name={tip.icon} size={64} />
+      <div
+        className="splash-tip"
+        role="button"
+        tabIndex={0}
+        onClick={nextTip}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            nextTip()
+          }
+        }}
+      >
+        <div className="splash-tip-body" key={tip.title}>
+          <div className={tip.photo ? 'splash-photo' : 'splash-photo plain'}>
+            {tip.photo ? <img src={tip.photo.src} alt="" /> : <Icon name={tip.icon} size={72} />}
+          </div>
+          {tip.photo && (
+            <small className="splash-credit">
+              Foto: {tip.photo.author} · {tip.photo.license}
+            </small>
           )}
+          <h2>{tip.title}</h2>
+          <p>{tip.text}</p>
         </div>
-        <h2>{tip.title}</h2>
-        <p>{tip.text}</p>
+        <small className="splash-hint">Tocca per un altro consiglio</small>
       </div>
 
       <div className="splash-footer">
