@@ -50,7 +50,24 @@ export default function App() {
   const [weatherMapCenter, setWeatherMapCenter] = useState<LatLon | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
   const sheetRef = useRef<HTMLElement>(null)
+  const swipe = useRef<{ startY: number; swiped: boolean } | null>(null)
   const hasSheet = selectedCell === null
+  const onGrabDown = (e: React.PointerEvent) => {
+    swipe.current = { startY: e.clientY, swiped: false }
+  }
+  const onGrabUp = (e: React.PointerEvent) => {
+    const s = swipe.current
+    if (!s) return
+    const dy = e.clientY - s.startY
+    if (Math.abs(dy) > 24) {
+      s.swiped = true
+      setSheetExpanded(dy < 0)
+    }
+  }
+  const onGrabClick = () => {
+    if (swipe.current?.swiped) swipe.current = null
+    else setSheetExpanded((v) => !v)
+  }
   // I controlli sulla mappa seguono l'altezza reale del pannello chiuso.
   useEffect(() => {
     const el = sheetRef.current
@@ -198,7 +215,9 @@ export default function App() {
           <button
             type="button"
             className="sheet-grab-area"
-            onClick={() => setSheetExpanded(!sheetExpanded)}
+            onPointerDown={onGrabDown}
+            onPointerUp={onGrabUp}
+            onClick={onGrabClick}
             aria-label={sheetLabel}
           >
             <span className="sheet-handle" />
