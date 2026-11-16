@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { SCAN_RADIUS_M, scanFraction } from '../core/areaScan'
-import { QUIPS, TIPS } from '../data/tips'
+import { markSeen, pickUnseen } from '../core/pickUnseen'
+import { QUIPS, TIPS, type Tip } from '../data/tips'
 import type { AreaStatus, useBestArea } from '../hooks/useBestArea'
+import { storage, STORAGE_KEYS } from '../services/storage'
 import { Icon } from './Icon'
 
 type Progress = ReturnType<typeof useBestArea>['progress']
@@ -17,6 +19,9 @@ interface Props {
 
 const TIP_MS = 6000
 const QUIP_MS = 3200
+
+const tipKey = (t: Tip) => t.title
+const readSeenTips = () => storage.get<string[]>(STORAGE_KEYS.seenTips) ?? []
 
 /** Ordine casuale, così le frasi non si ripetono finché non sono finite tutte. */
 function shuffled<T>(items: T[]): T[] {
@@ -41,7 +46,11 @@ function phaseText(status: AreaStatus, progress: Progress, waitingGps: boolean, 
 
 /** Schermata iniziale con avanzamento reale della scansione e consigli che scorrono; si può saltare. */
 export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSkip }: Props) {
-  const [index, setIndex] = useState(() => Math.floor(Math.random() * TIPS.length))
+  // I consigli già letti nei lanci precedenti si ripetono solo dopo averli visti tutti.
+  const [tip, setTip] = useState(() => pickUnseen(TIPS, tipKey, readSeenTips()))
+  useEffect(() => {
+    storage.set(STORAGE_KEYS.seenTips, markSeen(TIPS, tipKey, readSeenTips(), tip.title))
+  }, [tip])
   const [quips] = useState(() => shuffled(QUIPS))
   const [quipIndex, setQuipIndex] = useState(0)
   useEffect(() => {
@@ -49,7 +58,7 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
     return () => window.clearInterval(id)
   }, [])
   useEffect(() => {
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % TIPS.length), TIP_MS)
+    const id = window.setInterval(() => setTip(() => pickUnseen(TIPS, tipKey, readSeenTips())), TIP_MS)
     return () => window.clearInterval(id)
   }, [])
   // Foto dei consigli già pronte quando scorrono.
@@ -57,7 +66,6 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
     for (const t of TIPS) if (t.photo) new Image().src = t.photo.src
   }, [])
 
-  const tip = TIPS[index]
   const fraction = progress ? scanFraction(progress) : status === 'ready' ? 1 : scanFraction(null)
   // Il 100% arriva solo con il GPS agganciato.
   const percent = Math.round((waitingGps ? Math.min(fraction, 0.97) : fraction) * 100)
@@ -72,7 +80,7 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
         </div>
       </div>
 
-      <div className="splash-tip" key={index}>
+      <div className="splash-tip" key={tip.title}>
         <div className={tip.photo ? 'splash-photo' : 'splash-photo plain'}>
           {tip.photo ? (
             <>

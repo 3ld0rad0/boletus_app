@@ -40,4 +40,5 @@ export const STORAGE_KEYS = {
   pdrCalibration: 'boletus.pdrCalibration',
   lastView: 'boletus.lastView',
   areaReport: 'boletus.areaReport.v2',
+  seenTips: 'boletus.seenTips',
 } as const

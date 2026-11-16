@@ -1,8 +1,8 @@
 // Service worker (solo web): l'app si apre senza rete. I tasselli di mappa e le altre cache dati
 // sono gestiti dal codice dell'app, non qui.
 
-const SHELL_CACHE = 'boletus-shell-v2'
-const STATIC_PATHS = ['/favicon.svg', '/manifest.webmanifest']
+const SHELL_CACHE = 'boletus-shell-v5'
+const STATIC_PATHS = ['/favicon.svg', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(precacheShell().then(() => self.skipWaiting()))
