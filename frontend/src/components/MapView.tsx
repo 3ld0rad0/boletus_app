@@ -54,6 +54,8 @@ interface Props {
   selectedCellId: string | null
   onSelectCell: (id: string | null) => void
   onCenterChange: (center: LatLon) => void
+  /** Doppio click/tap: calcola subito su questo punto. */
+  onComputePoint: (point: LatLon) => void
   /** Altri pulsanti flottanti, sotto quello di centratura. */
   children?: ReactNode
 }
@@ -96,6 +98,7 @@ export function MapView({
   selectedCellId,
   onSelectCell,
   onCenterChange,
+  onComputePoint,
   children,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -110,11 +113,11 @@ export function MapView({
   const centeredOnUser = useRef(false)
   const selectedRef = useRef<string | null>(null)
   const lastFitKey = useRef<string | null>(null)
-  const callbacks = useRef({ onSelectCell, onCenterChange })
+  const callbacks = useRef({ onSelectCell, onCenterChange, onComputePoint })
   const initialStart = useRef(startPoint)
 
   useEffect(() => {
-    callbacks.current = { onSelectCell, onCenterChange }
+    callbacks.current = { onSelectCell, onCenterChange, onComputePoint }
   })
 
   useEffect(() => {
@@ -125,6 +128,8 @@ export function MapView({
       zoom: view.zoom,
       maxZoom: 19,
       zoomControl: false,
+      // Il doppio click serve per calcolare; si zooma con pinch e pulsanti +/-.
+      doubleClickZoom: false,
     })
     // Niente caricamenti durante i gesti e buffer corto: su rete lenta ogni tassello in più ritarda quelli visibili.
     new CachedTileLayer(TILE_URL, {
@@ -143,6 +148,9 @@ export function MapView({
     gridRef.current = L.layerGroup().addTo(map)
 
     map.on('click', () => callbacks.current.onSelectCell(null))
+    map.on('dblclick', (e: L.LeafletMouseEvent) =>
+      callbacks.current.onComputePoint({ lat: e.latlng.lat, lon: e.latlng.lng }),
+    )
     map.on('moveend', () => {
       const c = map.getCenter()
       callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
@@ -180,6 +188,9 @@ export function MapView({
         { ...GRID_STYLE, fillColor: BAND_COLORS[result.band], bubblingMouseEvents: false },
       )
       polygon.on('click', () => callbacks.current.onSelectCell(cell.id))
+      polygon.on('dblclick', (e: L.LeafletMouseEvent) =>
+        callbacks.current.onComputePoint({ lat: e.latlng.lat, lon: e.latlng.lng }),
+      )
       polygon.addTo(grid)
       rectsRef.current.set(cell.id, polygon)
     }

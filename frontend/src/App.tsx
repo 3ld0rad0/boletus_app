@@ -132,6 +132,7 @@ export default function App() {
         selectedCellId={selectedCellId}
         onSelectCell={setSelectedCellId}
         onCenterChange={onCenterChange}
+        onComputePoint={compute}
       >
         <button
           type="button"
