@@ -47,6 +47,10 @@ Mountain paths look the same in every direction, so Boletus helps you get back t
 - **Use it offline**: maps and data you have already seen stay available.
 - **Use it anywhere**: in the browser (installable as an app) and on Android.
 
+## Development
+
+Want to run it locally or build the Android app? See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ## License
 
 Boletus is open source under the [MIT License](LICENSE), © 2026 Edoardo Misurelli. You are free to use, copy, modify and share it, as long as the copyright notice is kept.

@@ -4,13 +4,13 @@ JAVA_HOME ?= $(HOME)/dev/jdk-21
 ANDROID_HOME ?= $(HOME)/dev/android-sdk
 
 help:
-	@echo "make setup     installa le dipendenze del frontend"
-	@echo "make frontend  avvia il frontend su :5173"
-	@echo "make dev       come make frontend"
-	@echo "make test      esegue i test"
-	@echo "make lint      lint del frontend"
-	@echo "make build     build del frontend"
-	@echo "make apk       build APK debug (frontend/android/app/build/outputs/apk/debug)"
+	@echo "make setup     install the frontend dependencies"
+	@echo "make frontend  start the frontend on :5173"
+	@echo "make dev       same as make frontend"
+	@echo "make test      run the tests"
+	@echo "make lint      lint the frontend"
+	@echo "make build     build the frontend"
+	@echo "make apk       build the debug APK (frontend/android/app/build/outputs/apk/debug)"
 
 setup:
 	cd frontend && npm install
