@@ -1,6 +1,6 @@
 import { bearingDeg, haversineM, offsetMeters } from './geo'
 import type { PlaceName } from './geocoding'
-import { LAPSE_RATE_C_PER_M, score, scoreGrid } from './scoring'
+import { LAPSE_RATE_C_PER_M, meanScore, score, scoreGrid } from './scoring'
 import type {
   Band,
   FactorResult,
@@ -59,7 +59,7 @@ export interface ZoneReport {
   coarseScore: number
   /** Vegetazione e distanza dagli abitati considerate nel punteggio. */
   detailed: boolean
-  /** Punteggio di ogni specie nella zona, dalla migliore. */
+  /** Punteggio medio di ogni specie nelle celle della zona, dal più alto. */
   speciesScores: SpeciesScore[]
   /** Meteo grezzo del modello (con storico per i grafici); solo per la zona consigliata riesaminata. */
   weather?: WeatherSummary
@@ -176,7 +176,7 @@ export function bestInGrid(
       if (s.result.score > scored[top].result.score) top = i
     })
     const { inputs, result } = scored[top]
-    speciesScores.push({ id: species.id, name: species.name, score: result.score })
+    speciesScores.push({ id: species.id, name: species.name, score: meanScore(scored) })
     if (!best || result.score > best.result.score) best = { species, cellIndex: top, inputs, result, speciesScores }
   }
   if (best) best.speciesScores.sort((a, b) => b.score - a.score)

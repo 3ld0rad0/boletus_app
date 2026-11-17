@@ -27,11 +27,11 @@ export function SpeciesProbabilityList({ items, selectedId, onSelect, compact }:
             className={species.id === selectedId ? 'active' : ''}
             onClick={() => onSelect(species.id)}
             aria-pressed={species.id === selectedId}
-            aria-label={`${species.name}: ${score}, ${BAND_LABELS[bandFor(score)]}`}
+            aria-label={`${species.name}: ${score}%, ${BAND_LABELS[bandFor(score)]}`}
           >
             <i style={{ background: BAND_COLORS[bandFor(score)] }} />
             {species.name}
-            <b>{score}</b>
+            <b>{score}%</b>
           </button>
         ))}
       </div>
@@ -40,7 +40,7 @@ export function SpeciesProbabilityList({ items, selectedId, onSelect, compact }:
   return (
     <div className="species-prob">
       <strong>Probabilità per fungo</strong>
-      <small>Cella migliore dell'area calcolata</small>
+      <small>Media delle celle dell'area calcolata</small>
       <ul>
         {sorted.map(({ species, score }) => {
           const band = bandFor(score)
@@ -58,7 +58,7 @@ export function SpeciesProbabilityList({ items, selectedId, onSelect, compact }:
                   <span style={{ width: `${score}%`, background: BAND_COLORS[band] }} />
                 </span>
                 <span className="species-prob-score">
-                  {score}
+                  {score}%
                   <small>{BAND_LABELS[band]}</small>
                 </span>
               </button>

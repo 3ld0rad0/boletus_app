@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { generateGrid } from '../core/geo'
 import { habitatBbox, habitatsFromImage, urbanDistancesFromImage, URBAN_MARGIN_DEG } from '../core/landcover'
-import { scoreGrid } from '../core/scoring'
+import { meanScore, scoreGrid } from '../core/scoring'
 import type { GridCell, Habitat, LatLon, SpeciesRules, WeatherSummary } from '../core/types'
 import { fetchWeatherSummary } from '../core/weather'
 import { fetchLandcover } from '../services/corine'
@@ -120,7 +120,7 @@ export function useProbabilityGrid(species: SpeciesRules, allSpecies: SpeciesRul
     [data, species],
   )
 
-  // Punteggio della cella migliore dell'area per ogni specie.
+  // Punteggio medio delle celle dell'area per ogni specie.
   const speciesScores = useMemo(() => {
     if (!data) return []
     return allSpecies.map((s) => {
@@ -134,7 +134,7 @@ export function useProbabilityGrid(species: SpeciesRules, allSpecies: SpeciesRul
         data.habitats ?? undefined,
         data.urbanDistances ?? undefined,
       )
-      return { species: s, score: Math.max(0, ...cells.map((c) => c.result.score)) }
+      return { species: s, score: meanScore(cells) }
     })
   }, [data, allSpecies])
 

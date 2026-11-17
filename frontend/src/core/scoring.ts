@@ -205,6 +205,12 @@ export function scoreGrid(
   })
 }
 
+/** Punteggio medio (arrotondato) delle celle; 0 se non ce ne sono. */
+export function meanScore(cells: ScoredCell[]): number {
+  if (!cells.length) return 0
+  return Math.round(cells.reduce((acc, c) => acc + c.result.score, 0) / cells.length)
+}
+
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 
 function checkTrapezoid(t: unknown, path: string, withWeight: boolean): void {

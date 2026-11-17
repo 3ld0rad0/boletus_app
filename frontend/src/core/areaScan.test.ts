@@ -99,7 +99,7 @@ describe('bestInGrid', () => {
     const best = bestInGrid(cells, elevations, weather, [low, high], 9, 10)
     expect(best?.speciesScores).toHaveLength(2)
     const top = Math.max(...best!.speciesScores.map((s) => s.score))
-    expect(best?.result.score).toBe(top)
+    expect(best?.result.score).toBeGreaterThanOrEqual(top)
   })
   it('griglia vuota: nessun risultato', () => {
     expect(bestInGrid([], [], weather, [low], 9, 10)).toBeNull()
