@@ -99,9 +99,10 @@ export function SplashScreen({ status, progress, waitingGps, gpsAccuracyM, onSki
           <div className={tip.photo ? 'splash-photo' : 'splash-photo plain'}>
             {tip.photo ? <img src={tip.photo.src} alt="" /> : <Icon name={tip.icon} size={72} />}
           </div>
-          {tip.photo && (
+          {tip.photo?.author && (
             <small className="splash-credit">
-              Foto: {tip.photo.author} · {tip.photo.license}
+              Foto: {tip.photo.author}
+              {tip.photo.license && ` · ${tip.photo.license}`}
             </small>
           )}
           <h2>{tip.title}</h2>
