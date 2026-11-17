@@ -11,12 +11,12 @@ Boletus started as a game. One day my father, a friend and I went mushroom hunti
 
 Boletus tries to answer both: it suggests where to go today, even far from your usual spots, and explains why, based on the weather of the last days.
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center"><img src="docs/screenshots/03-zona-migliore.png" width="200" alt="Best area of the day"><br><sub><b>Today's area</b><br>where to go and why</sub></td>
-    <td align="center"><img src="docs/screenshots/02-mappa-probabilita.png" width="200" alt="Map with per-cell probability"><br><sub><b>The map</b><br>probability cell by cell</sub></td>
-    <td align="center"><img src="docs/screenshots/04-dettaglio-cella.png" width="200" alt="Score details of a cell"><br><sub><b>The why</b><br>tap a cell to see what drives its score</sub></td>
-    <td align="center"><img src="docs/screenshots/05-scelta-fungo.png" width="200" alt="Species picker"><br><sub><b>Pick a mushroom</b><br>7 species, with a profile and look-alikes</sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/03-zona-migliore.png" width="100%" alt="Best area of the day"><br><sub><b>Today's area</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/02-mappa-probabilita.png" width="100%" alt="Map with per-cell probability"><br><sub><b>The map</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/04-dettaglio-cella.png" width="100%" alt="Score details of a cell"><br><sub><b>The why</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/05-scelta-fungo.png" width="100%" alt="Species picker"><br><sub><b>Pick a mushroom</b></sub></td>
   </tr>
 </table>
 
@@ -29,10 +29,12 @@ Mountain paths look the same in every direction, so Boletus helps you get back t
 3. **If the GPS drops** (dense forest, narrow valleys), the app keeps going by estimating your position from your steps and the compass (dotted line). The dashed circle shows how uncertain the estimate is: it grows the longer the GPS is missing, and the path snaps back to the real position as soon as the GPS returns.
 4. **Head back** whenever you want: an arrow shows the direction and the distance to the starting point, following the path you have already walked rather than a straight line through the woods. It works without a signal, and tells you when you have arrived.
 
-<table>
+<table width="100%">
   <tr>
-    <td align="center"><img src="docs/screenshots/07-tracking-map.png" width="240" alt="Map with the GPS track, the estimated track and the current position"><br><sub><b>On the map</b><br>solid line: GPS · dotted line: estimated from steps and compass</sub></td>
-    <td align="center"><img src="docs/screenshots/08-tracking-return.png" width="240" alt="Starting point panel with the direction and distance to go back"><br><sub><b>The way back</b><br>direction and distance along the path you walked</sub></td>
+    <td width="25%"></td>
+    <td width="25%" align="center"><img src="docs/screenshots/07-tracking-map.png" width="100%" alt="Map with the GPS track, the estimated track and the current position"><br><sub><b>On the map</b></sub></td>
+    <td width="25%" align="center"><img src="docs/screenshots/08-tracking-return.png" width="100%" alt="Starting point panel with the direction and distance to go back"><br><sub><b>The way back</b></sub></td>
+    <td width="25%"></td>
   </tr>
 </table>
 
