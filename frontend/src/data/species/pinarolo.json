@@ -1,0 +1,16 @@
+{
+  "id": "pinarolo",
+  "name": "Pinarolo",
+  "latinName": "Suillus luteus",
+  "_note": "Valori segnaposto plausibili: da validare con un micologo esperto. Noto anche come pinarello, vavuso o bavusa. Cresce sotto i pini.",
+  "blocking": {
+    "season": [0, 0, 0, 0, 0.2, 0.5, 0.7, 0.8, 1, 1, 0.6, 0.1],
+    "elevation": { "min": 0, "optMin": 100, "optMax": 1300, "max": 1900 }
+  },
+  "weighted": {
+    "temperature": { "min": 6, "optMin": 12, "optMax": 22, "max": 28, "weight": 0.3 },
+    "rain": { "min": 10, "optMin": 30, "optMax": 110, "max": 240, "weight": 0.4 },
+    "humidity": { "min": 50, "optMin": 70, "optMax": 100, "max": 100, "weight": 0.3 },
+    "habitat": { "weight": 0.33, "preferences": { "conifer": 1.0, "broadleaf": 0.05, "mixed": 0.7, "forest": 0.5, "grassland": 0.0, "none": 0.4 } }
+  }
+}

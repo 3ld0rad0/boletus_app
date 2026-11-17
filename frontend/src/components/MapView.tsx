@@ -1,0 +1,372 @@
+import { useEffect, useRef, type ReactNode } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import type { LatLon, ScoredCell, TrackPoint } from '../core/types'
+import { splitBySource } from '../core/track'
+import type { Position } from '../services/location'
+import {
+  BAND_COLORS,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  PLACE_ZOOM,
+  TILE_ATTRIBUTION,
+  TILE_MAX_ZOOM,
+  TILE_URL,
+  USER_ZOOM,
+} from '../config'
+import { isConstrainedConnection } from '../services/network'
+import { storage, STORAGE_KEYS } from '../services/storage'
+import { markMapIdle } from '../services/tilePrefetch'
+import { CachedTileLayer } from './CachedTileLayer'
+import { Icon } from './Icon'
+
+interface SavedView extends LatLon {
+  zoom: number
+}
+
+function validView(v: SavedView | null): v is SavedView {
+  return !!v && [v.lat, v.lon, v.zoom].every(Number.isFinite) && Math.abs(v.lat) <= 90 && Math.abs(v.lon) <= 180
+}
+
+/** Ultima vista, altrimenti il punto di partenza: si apre subito dove serve, senza caricare l'Italia intera. */
+function initialView(startPoint: LatLon | null): { center: L.LatLngTuple; zoom: number } {
+  const saved = storage.get<SavedView>(STORAGE_KEYS.lastView)
+  if (validView(saved)) return { center: [saved.lat, saved.lon], zoom: saved.zoom }
+  if (startPoint) return { center: [startPoint.lat, startPoint.lon], zoom: USER_ZOOM }
+  return { center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lon], zoom: DEFAULT_ZOOM }
+}
+
+/** Il volo attraversa zoom intermedi e carica tasselli inutili: solo per spostamenti brevi e con rete buona. */
+function goTo(map: L.Map, target: L.LatLngTuple, zoom: number) {
+  if (!isConstrainedConnection() && map.getBounds().contains(target)) map.flyTo(target, zoom)
+  else map.setView(target, zoom, { animate: false })
+}
+
+/** Margini che tengono l'area fuori dalla barra in alto e dal pannello in basso. */
+function freeAreaPadding(map: L.Map, desktop: L.FitBoundsOptions): L.FitBoundsOptions {
+  if (!window.matchMedia('(max-width: 699px)').matches) return desktop
+  const top = (document.querySelector('.top-controls')?.getBoundingClientRect().bottom ?? 100) + 10
+  const sheetTop = document.querySelector('.bottom-sheet')?.getBoundingClientRect().top
+  const bottom = sheetTop ? map.getSize().y - sheetTop + 10 : 160
+  return { paddingTopLeft: [16, top], paddingBottomRight: [16, bottom] }
+}
+
+/** Inquadra l'area senza scendere sotto MIN_FIT_ZOOM: su schermi piccoli la griglia sfora i bordi, ma resta leggibile. */
+const MIN_FIT_ZOOM = 13
+function fitArea(map: L.Map, bounds: L.LatLngBounds, options: L.FitBoundsOptions) {
+  const padding = L.point(
+    (options.paddingTopLeft ? L.point(options.paddingTopLeft).x : 0) +
+      (options.paddingBottomRight ? L.point(options.paddingBottomRight).x : 0) +
+      (options.padding ? L.point(options.padding).x * 2 : 0),
+    (options.paddingTopLeft ? L.point(options.paddingTopLeft).y : 0) +
+      (options.paddingBottomRight ? L.point(options.paddingBottomRight).y : 0) +
+      (options.padding ? L.point(options.padding).y * 2 : 0),
+  )
+  if (map.getBoundsZoom(bounds, false, padding) >= MIN_FIT_ZOOM) map.fitBounds(bounds, options)
+  else map.flyTo(bounds.getCenter(), MIN_FIT_ZOOM, { duration: options.duration })
+}
+
+interface Props {
+  position: Position | null
+  startPoint: LatLon | null
+  /** Percorso registrato dalla partenza alla posizione attuale. */
+  track: TrackPoint[]
+  /** La posizione è una stima da passi e bussola: il cerchio indica l'incertezza. */
+  estimated?: boolean
+  /** Cambiando riferimento la mappa si sposta qui (es. località cercata). */
+  focus: LatLon | null
+  /** Ogni incremento reinquadra la griglia corrente. */
+  fitGridRequest: number
+  cells: ScoredCell[]
+  selectedCellId: string | null
+  onSelectCell: (id: string | null) => void
+  onCenterChange: (center: LatLon) => void
+  /** Doppio click/tap: calcola subito su questo punto. */
+  onComputePoint: (point: LatLon) => void
+  /** Altri pulsanti flottanti, sotto quello di centratura. */
+  children?: ReactNode
+}
+
+const GRID_STYLE: L.PathOptions = { color: '#333', weight: 0.5, opacity: 0.4, fillOpacity: 0.4 }
+const SELECTED_STYLE: L.PathOptions = { color: '#fff', weight: 5, opacity: 1 }
+// Visibile anche senza tessere di mappa, per tornare al punto di partenza.
+const HOME_LINE_STYLE: L.PolylineOptions = { color: '#173f32', weight: 4, opacity: 0.85, dashArray: '2 9', lineCap: 'round', interactive: false }
+const TRACK_STYLE: L.PolylineOptions = { color: '#bd5c32', weight: 4, opacity: 0.9, lineJoin: 'round', interactive: false }
+const PDR_TRACK_STYLE: L.PolylineOptions = { ...TRACK_STYLE, opacity: 0.75, dashArray: '2 9', lineCap: 'round' }
+const ACCURACY_STYLE: L.CircleOptions = { stroke: false, fillColor: '#1e88e5', fillOpacity: 0.15 }
+const ESTIMATE_STYLE: L.CircleOptions = { stroke: true, color: '#bd5c32', weight: 2, dashArray: '4 6', fillColor: '#bd5c32', fillOpacity: 0.12 }
+
+const USER_ICON = L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [18, 18] })
+// Stessa icona "flag" di Icon.tsx; punta del segnaposto in basso al centro.
+const START_ICON = L.divIcon({
+  className: '',
+  html:
+    '<div class="start-pin-body"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M6 21V4" /><path d="M6 5c4-3 7 3 12 0v9c-5 3-8-3-12 0" /></svg></div>',
+  iconSize: [38, 38],
+  iconAnchor: [19, 46],
+})
+
+function applySelection(rects: Map<string, L.Polygon>, selectedId: string | null) {
+  rects.forEach((rect, id) => {
+    if (id === selectedId) {
+      rect.setStyle(SELECTED_STYLE)
+      rect.bringToFront()
+    } else {
+      rect.setStyle(GRID_STYLE)
+    }
+  })
+}
+
+export function MapView({
+  position,
+  estimated = false,
+  startPoint,
+  track,
+  focus,
+  fitGridRequest,
+  cells,
+  selectedCellId,
+  onSelectCell,
+  onCenterChange,
+  onComputePoint,
+  children,
+}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const gridRef = useRef<L.LayerGroup | null>(null)
+  const rectsRef = useRef<Map<string, L.Polygon>>(new Map())
+  const accuracyRef = useRef<L.Circle | null>(null)
+  const userMarkerRef = useRef<L.Marker | null>(null)
+  const startMarkerRef = useRef<L.Marker | null>(null)
+  const homeLineRef = useRef<L.Polyline | null>(null)
+  const trackRef = useRef<L.LayerGroup | null>(null)
+  const centeredOnUser = useRef(false)
+  const selectedRef = useRef<string | null>(null)
+  const lastFitKey = useRef<string | null>(null)
+  const callbacks = useRef({ onSelectCell, onCenterChange, onComputePoint })
+  const initialStart = useRef(startPoint)
+
+  useEffect(() => {
+    callbacks.current = { onSelectCell, onCenterChange, onComputePoint }
+  })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const view = initialView(initialStart.current)
+    const map = L.map(containerRef.current, {
+      center: view.center,
+      zoom: view.zoom,
+      maxZoom: 19,
+      zoomControl: false,
+      // Il doppio click serve per calcolare; si zooma con pinch e pulsanti +/-.
+      doubleClickZoom: false,
+      // Margine ampio: con il default (10%) la griglia e il raggio vengono tagliati durante il pan.
+      renderer: L.svg({ padding: 0.5 }),
+    })
+    // Barre del browser, rotazione e tastiera cambiano l'altezza: senza ricalcolo la mappa resta tagliata.
+    let resizeFrame = 0
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame)
+      resizeFrame = requestAnimationFrame(() => map.invalidateSize({ pan: false }))
+    })
+    resizeObserver.observe(containerRef.current)
+    // Niente caricamenti durante i gesti e buffer corto: su rete lenta ogni tassello in più ritarda quelli visibili.
+    new CachedTileLayer(TILE_URL, {
+      attribution: TILE_ATTRIBUTION,
+      subdomains: 'abc',
+      maxNativeZoom: TILE_MAX_ZOOM,
+      maxZoom: 19,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 1,
+    })
+      .on('load', markMapIdle)
+      .addTo(map)
+    L.control.zoom({ position: 'topright' }).addTo(map)
+    L.control.scale({ metric: true, imperial: false, position: 'bottomright' }).addTo(map)
+    gridRef.current = L.layerGroup().addTo(map)
+
+    map.on('click', () => callbacks.current.onSelectCell(null))
+    map.on('dblclick', (e: L.LeafletMouseEvent) =>
+      callbacks.current.onComputePoint({ lat: e.latlng.lat, lon: e.latlng.lng }),
+    )
+    map.on('moveend', () => {
+      const c = map.getCenter()
+      callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
+      storage.set<SavedView>(STORAGE_KEYS.lastView, { lat: c.lat, lon: c.lng, zoom: map.getZoom() })
+    })
+    const c = map.getCenter()
+    callbacks.current.onCenterChange({ lat: c.lat, lon: c.lng })
+
+    mapRef.current = map
+    const rects = rectsRef.current
+    return () => {
+      cancelAnimationFrame(resizeFrame)
+      resizeObserver.disconnect()
+      map.remove()
+      mapRef.current = null
+      gridRef.current = null
+      rects.clear()
+      accuracyRef.current = null
+      userMarkerRef.current = null
+      startMarkerRef.current = null
+      homeLineRef.current = null
+      trackRef.current = null
+      centeredOnUser.current = false
+      lastFitKey.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const grid = gridRef.current
+    if (!map || !grid) return
+    grid.clearLayers()
+    rectsRef.current.clear()
+    for (const { cell, result } of cells) {
+      const polygon = L.polygon(
+        cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon]),
+        { ...GRID_STYLE, fillColor: BAND_COLORS[result.band], bubblingMouseEvents: false },
+      )
+      polygon.on('click', () => callbacks.current.onSelectCell(cell.id))
+      polygon.on('dblclick', (e: L.LeafletMouseEvent) =>
+        callbacks.current.onComputePoint({ lat: e.latlng.lat, lon: e.latlng.lng }),
+      )
+      polygon.addTo(grid)
+      rectsRef.current.set(cell.id, polygon)
+    }
+    applySelection(rectsRef.current, selectedRef.current)
+    if (cells.length === 0) return
+    // Inquadra la griglia solo quando cambia l'area, non quando cambia la specie.
+    const { lat, lon } = cells[0].cell.center
+    const key = `${lat},${lon}`
+    if (key !== lastFitKey.current) {
+      lastFitKey.current = key
+      const bounds = L.latLngBounds(cells.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])))
+      fitArea(map, bounds, { ...freeAreaPadding(map, { padding: [40, 40] }), duration: 0.8 })
+    }
+  }, [cells])
+
+  const cellsRef = useRef(cells)
+  cellsRef.current = cells
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || fitGridRequest === 0 || cellsRef.current.length === 0) return
+    const bounds = L.latLngBounds(
+      cellsRef.current.flatMap((c) => c.cell.polygon.map((p): L.LatLngTuple => [p.lat, p.lon])),
+    )
+    // Margini extra per non finire sotto la barra in alto e il pannello in basso.
+    fitArea(map, bounds, {
+      ...freeAreaPadding(map, { paddingTopLeft: [30, 150], paddingBottomRight: [30, 230] }),
+      duration: 0.8,
+    })
+  }, [fitGridRequest])
+
+  useEffect(() => {
+    selectedRef.current = selectedCellId
+    applySelection(rectsRef.current, selectedCellId)
+  }, [selectedCellId])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !position) return
+    const latLng: L.LatLngTuple = [position.lat, position.lon]
+    if (!userMarkerRef.current) {
+      userMarkerRef.current = L.marker(latLng, {
+        icon: USER_ICON,
+        interactive: false,
+        keyboard: false,
+      }).addTo(map)
+      accuracyRef.current = L.circle(latLng, {
+        radius: position.accuracyM,
+        ...(estimated ? ESTIMATE_STYLE : ACCURACY_STYLE),
+        interactive: false,
+      }).addTo(map)
+    } else {
+      userMarkerRef.current.setLatLng(latLng)
+      accuracyRef.current
+        ?.setLatLng(latLng)
+        .setRadius(position.accuracyM)
+        .setStyle(estimated ? ESTIMATE_STYLE : ACCURACY_STYLE)
+    }
+    if (!centeredOnUser.current) {
+      centeredOnUser.current = true
+      goTo(map, latLng, USER_ZOOM)
+    }
+  }, [position, estimated])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (!startPoint) {
+      startMarkerRef.current?.remove()
+      startMarkerRef.current = null
+      return
+    }
+    const latLng: L.LatLngTuple = [startPoint.lat, startPoint.lon]
+    if (!startMarkerRef.current) {
+      startMarkerRef.current = L.marker(latLng, { icon: START_ICON, interactive: false, keyboard: false }).addTo(map)
+    } else {
+      startMarkerRef.current.setLatLng(latLng)
+    }
+  }, [startPoint])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    homeLineRef.current?.remove()
+    homeLineRef.current = null
+    if (!position || !startPoint || track.length > 1) return
+    homeLineRef.current = L.polyline(
+      [
+        [position.lat, position.lon],
+        [startPoint.lat, startPoint.lon],
+      ],
+      HOME_LINE_STYLE,
+    ).addTo(map)
+  }, [position, startPoint, track])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    trackRef.current?.remove()
+    trackRef.current = null
+    if (track.length < 2) return
+    const layer = L.layerGroup()
+    for (const run of splitBySource(track)) {
+      if (run.points.length < 2) continue
+      const latLngs = run.points.map((p): L.LatLngTuple => [p.lat, p.lon])
+      L.polyline(latLngs, run.source === 'pdr' ? PDR_TRACK_STYLE : TRACK_STYLE).addTo(layer)
+    }
+    trackRef.current = layer.addTo(map)
+  }, [track])
+
+  useEffect(() => {
+    if (focus && mapRef.current) goTo(mapRef.current, [focus.lat, focus.lon], PLACE_ZOOM)
+  }, [focus])
+
+  const recenter = () => {
+    const map = mapRef.current
+    if (position && map) goTo(map, [position.lat, position.lon], Math.max(map.getZoom(), USER_ZOOM))
+  }
+
+  return (
+    <div className="map-wrapper">
+      <div ref={containerRef} className="map" />
+      <div className="float-controls">
+        <button
+          type="button"
+          className="map-fab"
+          onClick={recenter}
+          disabled={!position}
+          title="Centra sulla mia posizione"
+          aria-label="Centra sulla mia posizione"
+        >
+          <Icon name="locate" />
+        </button>
+        {children}
+      </div>
+    </div>
+  )
+}
