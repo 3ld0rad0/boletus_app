@@ -49,3 +49,52 @@ describe('fetchMapTile', () => {
     await expect(fetchMapTile('http://x/1')).rejects.toThrow('503')
   })
 })
+
+function fakeCaches() {
+  const stores = new Map<string, Map<string, Response>>()
+  const open = async (name: string) => {
+    const entries = stores.get(name) ?? new Map<string, Response>()
+    stores.set(name, entries)
+    return {
+      match: async (url: string) => entries.get(url)?.clone(),
+      put: async (url: string, res: Response) => void entries.set(url, res),
+      keys: async () => [...entries.keys()].map((url) => new Request(url)),
+      delete: async (req: Request) => entries.delete(req.url),
+    }
+  }
+  return { stores, caches: { open } }
+}
+
+describe('tasselli del punto di partenza', () => {
+  // Modulo nuovo a ogni test: la cache aperta viene ricordata a livello di modulo.
+  async function setup() {
+    vi.resetModules()
+    const fake = fakeCaches()
+    vi.stubGlobal('caches', fake.caches)
+    const fetchFn = vi.fn(async () => new Response('png'))
+    vi.stubGlobal('fetch', fetchFn)
+    return { ...fake, fetchFn, mod: await import('./tileCache') }
+  }
+
+  it('un tassello salvato si legge senza rete', async () => {
+    const { mod, fetchFn } = await setup()
+    await mod.pinStartTile('http://x/1')
+    fetchFn.mockRejectedValue(new TypeError('offline'))
+    expect(await (await mod.fetchMapTile('http://x/1')).text()).toBe('png')
+  })
+  it('non riscarica un tassello già salvato', async () => {
+    const { mod, fetchFn } = await setup()
+    await mod.pinStartTile('http://x/1')
+    await mod.pinStartTile('http://x/1')
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+  })
+  it('libera solo i tasselli che non servono più', async () => {
+    const { mod, stores } = await setup()
+    await mod.pinStartTile('http://x/1')
+    await mod.pinStartTile('http://x/2')
+    await mod.unpinStartTiles(['http://x/2'])
+    expect([...stores.get('start-tiles-v1')!.keys()]).toEqual(['http://x/2'])
+    await mod.unpinStartTiles()
+    expect(stores.get('start-tiles-v1')!.size).toBe(0)
+  })
+})

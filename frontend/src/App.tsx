@@ -28,7 +28,7 @@ import { useTrack } from './hooks/useTrack'
 import { DEFAULT_CENTER, GRID_RADIUS_M } from './config'
 import { storage, STORAGE_KEYS } from './services/storage'
 import type { Position } from './services/location'
-import { prefetchTiles } from './services/tilePrefetch'
+import { forgetStartTiles, prefetchTiles } from './services/tilePrefetch'
 
 const radiusLabel = `${(GRID_RADIUS_M / 1000).toLocaleString('it-IT')} km`
 const SPLASH_DONE_MS = 700
@@ -150,7 +150,8 @@ export default function App() {
 
   // Mappa disponibile anche senza rete attorno al punto di partenza (per tornare indietro).
   useEffect(() => {
-    if (startLat !== undefined && startLon !== undefined) void prefetchTiles({ lat: startLat, lon: startLon })
+    if (startLat !== undefined && startLon !== undefined) void prefetchTiles({ lat: startLat, lon: startLon }, { pin: true })
+    else void forgetStartTiles()
   }, [startLat, startLon])
 
   const hasGrid = grid.scored.length > 0
